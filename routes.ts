@@ -1,21 +1,21 @@
-import React from 'react';
+import React, { lazy } from 'react';
 
-// Import all page components
-import HomePage from './pages/HomePage';
-import AboutPage from './pages/AboutPage';
-import FeaturesPage from './pages/FeaturesPage';
-import TestimonialsPage from './pages/TestimonialsPage';
-import ResourcesPage from './pages/ResourcesPage';
-import DonatePage from './pages/DonatePage';
-import ContactPage from './pages/ContactPage';
-import TemplateLibraryPage from './pages/TemplateLibraryPage';
-import PrivacyPolicyPage from './pages/PrivacyPolicyPage';
-import TermsOfUsePage from './pages/TermsOfUsePage';
+// Lazy load page components for better performance
+const HomePage = lazy(() => import('./pages/HomePage'));
+const AboutPage = lazy(() => import('./pages/AboutPage'));
+const FeaturesPage = lazy(() => import('./pages/FeaturesPage'));
+const TestimonialsPage = lazy(() => import('./pages/TestimonialsPage'));
+const ResourcesPage = lazy(() => import('./pages/ResourcesPage'));
+const DonatePage = lazy(() => import('./pages/DonatePage'));
+const ContactPage = lazy(() => import('./pages/ContactPage'));
+const TemplateLibraryPage = lazy(() => import('./pages/TemplateLibraryPage'));
+const PrivacyPolicyPage = lazy(() => import('./pages/PrivacyPolicyPage'));
+const TermsOfUsePage = lazy(() => import('./pages/TermsOfUsePage'));
 
 export interface RouteConfig {
     path: string;
     label: string;
-    component: React.FC;
+    component: React.ComponentType;
     inHeader: boolean;
     inFooter: boolean;
 }

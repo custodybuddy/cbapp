@@ -1,5 +1,6 @@
 import React from 'react';
 import { getFormattedDate } from '../utils/dateUtils';
+import AlertTriangleIcon from './icons/AlertTriangleIcon';
 
 const TermsOfUse: React.FC = () => {
     return (
@@ -10,19 +11,27 @@ const TermsOfUse: React.FC = () => {
                 These Terms of Use ("Terms") govern your access to and use of the CustodyBuddy.com website and its associated AI-powered tools (the "Service"). Please read these Terms carefully. By using the Service, you agree to be bound by these Terms.
             </p>
 
-            <div className="p-4 bg-amber-900/20 border border-amber-500/50 rounded-lg">
-                <h3 className="text-amber-400 font-bold mt-0">1. NO LEGAL ADVICE & NO LAWYER-CLIENT RELATIONSHIP</h3>
-                <p className="font-bold">
-                    This is the most important term. CustodyBuddy.com is a legal information tool, NOT a law firm.
+            <div className="p-4 my-6 bg-red-900/30 border-2 border-red-500/70 rounded-lg shadow-lg shadow-red-900/20">
+                <h3 className="text-red-400 font-bold mt-0 text-lg flex items-center gap-2">
+                    <AlertTriangleIcon className="w-6 h-6 flex-shrink-0" />
+                    IMPORTANT LEGAL DISCLAIMER: READ CAREFULLY
+                </h3>
+                <p className="font-bold text-red-300 mt-2">
+                    This is the most important term you must understand. CustodyBuddy.com is an informational resource, NOT a law firm.
                 </p>
-                <ul>
-                    <li>The Service provides AI-generated information for educational and organizational purposes only. It is not a substitute for advice from a qualified legal professional.</li>
-                    <li><strong>Use of the Service does not create a lawyer-client relationship between you and CustodyBuddy.com or any of its employees or affiliates.</strong></li>
-                    <li>Laws vary by jurisdiction and are subject to change and interpretation. You are solely responsible for the accuracy and appropriateness of any information you use from the Service for your specific situation.</li>
-                    <li>You should consult with a licensed lawyer in your jurisdiction for advice on your specific legal issues.</li>
+                <ul className="list-disc pl-5 mt-2 space-y-1 text-red-200">
+                    <li>The Service provides AI-generated information for educational purposes only. <strong>It is not legal advice.</strong></li>
+                    <li><strong>Use of this Service does not create a lawyer-client relationship.</strong> The information you submit is not protected by attorney-client privilege.</li>
+                    <li>Laws are complex and change frequently. Information may not be accurate for your specific situation.</li>
+                    <li><strong>You MUST consult with a qualified, licensed lawyer in your jurisdiction</strong> for advice on your individual circumstances. Relying solely on this tool could be harmful to your case.</li>
                 </ul>
             </div>
             
+
+            <h3 className="text-amber-400 font-bold">1. Acceptance of Terms</h3>
+            <p>
+                By checking the "I Agree" box and using the Service, you confirm that you have read, understood, and agree to be bound by these Terms, including the Legal Disclaimer above. If you do not agree with these Terms, you must not use the Service.
+            </p>
 
             <h3 className="text-amber-400 font-bold">2. Use of the Service</h3>
             <p>

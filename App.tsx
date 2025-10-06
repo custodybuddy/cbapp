@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import Header from './components/Header';
 import Footer from './components/Footer';
 import { routes, externalLinks, NavLink } from './routes';
@@ -6,6 +6,17 @@ import { ModalProvider } from './contexts/ModalContext';
 import GlobalModals from './components/GlobalModals';
 import { useConsent } from './hooks/useConsent';
 import ConsentModal from './components/ConsentModal';
+import SpinnerIcon from './components/icons/SpinnerIcon';
+
+const PageFallback: React.FC = () => (
+    <div className="flex justify-center items-center min-h-screen">
+        <div className="text-center text-gray-400">
+            <SpinnerIcon className="w-12 h-12 mx-auto mb-4 text-amber-400" />
+            <p>Loading Page...</p>
+        </div>
+    </div>
+);
+
 
 const App: React.FC = () => {
     const [route, setRoute] = useState(window.location.hash || '#/');
@@ -51,7 +62,9 @@ const App: React.FC = () => {
             <div className="bg-slate-900 text-white">
                 <Header currentPath={route} navLinks={headerNavLinks} />
                 <main>
-                    <PageComponent />
+                    <Suspense fallback={<PageFallback />}>
+                        <PageComponent />
+                    </Suspense>
                 </main>
                 <Footer currentPath={route} navLinks={footerNavLinks} />
                 <GlobalModals />

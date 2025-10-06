@@ -21,7 +21,7 @@ interface ChatUIProps {
     personaMenuRef: React.RefObject<HTMLDivElement>;
 }
 
-const ChatMessage: React.FC<{ entry: TranscriptEntry }> = ({ entry }) => (
+const ChatMessage: React.FC<{ entry: TranscriptEntry }> = React.memo(({ entry }) => (
     <div className={`flex gap-3 my-4 ${entry.speaker === 'user' ? 'justify-end' : 'justify-start'}`}>
         {entry.speaker === 'model' && (
             <div className="w-8 h-8 rounded-full bg-amber-400 text-slate-900 flex items-center justify-center flex-shrink-0">
@@ -32,7 +32,7 @@ const ChatMessage: React.FC<{ entry: TranscriptEntry }> = ({ entry }) => (
             <p className="text-sm">{entry.text}</p>
         </div>
     </div>
-);
+));
 
 
 const ChatUI: React.FC<ChatUIProps> = ({
