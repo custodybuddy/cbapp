@@ -32,6 +32,40 @@ export const cleanEmailForSpeech = (emailText: string): string => {
         .trim();
 };
 
+
+/**
+ * Cleans a structured case analysis object and formats it into a single plain text string for text-to-speech.
+ * @param analysis The structured analysis object.
+ * @returns A plain text string suitable for speech synthesis.
+ */
+export const cleanAnalysisForSpeech = (analysis: any): string => {
+    let speechText = "AI Analysis. ";
+
+    if (analysis.summary) {
+        speechText += "Summary: " + analysis.summary + ". ";
+    }
+    if (analysis.keyClauses && analysis.keyClauses.length > 0) {
+        speechText += "Key Clauses and Obligations: ";
+        speechText += analysis.keyClauses.map((c: any) => `${c.clause}: ${c.explanation}`).join('. ');
+        speechText += ". ";
+    }
+    if (analysis.discrepancies && analysis.discrepancies.length > 0) {
+        speechText += "Potential Discrepancies and Flags: ";
+        speechText += analysis.discrepancies.map((d: any) => d.description).join('. ');
+        speechText += ". ";
+    }
+    if (analysis.actionItems && analysis.actionItems.length > 0) {
+        speechText += "Action Items and Deadlines: ";
+        speechText += analysis.actionItems.map((item: any) => item.item).join('. ');
+        speechText += ". ";
+    }
+    if (analysis.suggestedNextSteps) {
+        speechText += "Suggested Next Steps: " + analysis.suggestedNextSteps + ". ";
+    }
+    
+    return cleanMarkdownForSpeech(speechText);
+};
+
 /**
  * Cleans an incident report object and formats it into a single plain text string for text-to-speech.
  * @param report The IncidentReport object.

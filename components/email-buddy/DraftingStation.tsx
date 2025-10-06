@@ -6,22 +6,11 @@ import XIcon from '../icons/XIcon';
 import SpeakerIcon from '../icons/SpeakerIcon';
 import StopCircleIcon from '../icons/StopCircleIcon';
 import { formatMarkdown } from '../../utils/markdownParser';
-import { emailBuddySystemPrompt } from '../../prompts';
-import { getFriendlyErrorMessage } from '../../utils/errorUtils';
-import { generateDraftEmail } from '../../services/aiService';
 import { useTextToSpeech } from '../../hooks/useTextToSpeech';
-import { ToneOption } from '../EmailLawBuddy';
+import { useEmailBuddy, ToneOption } from '../../hooks/useEmailBuddy';
 import Feedback from '../Feedback';
 import { cleanEmailForSpeech } from '../../utils/stringUtils';
 import PauseIcon from '../icons/PauseIcon';
-
-interface DraftingStationProps {
-    receivedEmail: string;
-    initialKeyPoints: string;
-    isShowingExample: boolean;
-    exampleKeyPoints: string;
-    exampleDrafts: Record<string, string>;
-}
 
 const toneOptions: { tone: ToneOption, recommended: boolean }[] = [
     { tone: 'BIFF', recommended: true },
@@ -37,18 +26,18 @@ const recommendedTones = toneOptions.filter(t => t.recommended);
 const otherTones = toneOptions.filter(t => !t.recommended);
 
 
-const DraftingStation: React.FC<DraftingStationProps> = ({ 
-    receivedEmail,
-    initialKeyPoints,
-    isShowingExample,
-    exampleKeyPoints,
-    exampleDrafts
-}) => {
-    const [keyPoints, setKeyPoints] = useState(initialKeyPoints);
-    const [drafts, setDrafts] = useState<Record<string, string>>({});
-    const [activeDraftTone, setActiveDraftTone] = useState<ToneOption | null>(null);
-    const [isLoading, setIsLoading] = useState(false);
-    const [error, setError] = useState<string | null>(null);
+const DraftingStation: React.FC = () => {
+    const {
+        keyPoints,
+        setKeyPoints,
+        drafts,
+        activeDraftTone,
+        isLoadingDraft,
+        error,
+        setError,
+        handleGenerateDraft,
+    } = useEmailBuddy();
+
     const [isCopied, setIsCopied] = useState(false);
     const [speakingDraft, setSpeakingDraft] = useState<ToneOption | null>(null);
 
@@ -57,16 +46,8 @@ const DraftingStation: React.FC<DraftingStationProps> = ({
     });
 
     useEffect(() => {
-        if (isShowingExample) {
-            setKeyPoints(exampleKeyPoints);
-            setDrafts(exampleDrafts);
-        } else {
-            setKeyPoints(initialKeyPoints);
-            setDrafts({});
-        }
-        cancel();
-        setSpeakingDraft(null);
-    }, [isShowingExample, initialKeyPoints, exampleKeyPoints, exampleDrafts, cancel]);
+        return () => cancel(); // Stop speech when component unmounts/re-renders
+    }, [cancel]);
 
     useEffect(() => {
         if (isCopied) {
@@ -75,46 +56,6 @@ const DraftingStation: React.FC<DraftingStationProps> = ({
         }
     }, [isCopied]);
 
-    const handleKeyPointsChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-        setKeyPoints(e.target.value);
-        setDrafts({});
-    };
-
-    const handleGenerateDraft = async (tone: ToneOption) => {
-        if (!keyPoints.trim()) {
-            setError('Please provide key points before generating a draft.');
-            return;
-        }
-
-        setIsLoading(true);
-        setActiveDraftTone(tone);
-        setError(null);
-
-        try {
-            const userPrompt = `Please draft a response with the tone "${tone}".
-
-**Original Email Received:**
-\`\`\`
-${receivedEmail}
-\`\`\`
-
-**My Key Points to Include:**
-\`\`\`
-${keyPoints}
-\`\`\`
-`;
-            
-            const result = await generateDraftEmail(userPrompt, emailBuddySystemPrompt);
-            setDrafts(prev => ({ ...prev, [tone]: result }));
-            
-        } catch (err: any) {
-            setError(getFriendlyErrorMessage(err, 'draft generation'));
-        } finally {
-            setIsLoading(false);
-            setActiveDraftTone(null);
-        }
-    };
-    
     const handleCopy = (text: string) => {
         if (text) {
             navigator.clipboard.writeText(text);
@@ -147,10 +88,10 @@ ${keyPoints}
                 <div key={tone} className="flex flex-col">
                     <button
                         onClick={() => handleGenerateDraft(tone)}
-                        disabled={isLoading || !keyPoints.trim()}
+                        disabled={isLoadingDraft || !keyPoints.trim()}
                         className="bg-slate-700 hover:bg-slate-600 active:bg-slate-500 text-white font-bold py-2 px-4 rounded-t-lg transition-all duration-200 ease-out disabled:opacity-75 disabled:cursor-not-allowed flex items-center justify-center w-full"
                     >
-                        {isLoading && activeDraftTone === tone ? (
+                        {isLoadingDraft && activeDraftTone === tone ? (
                              <>
                                 <svg className="animate-spin -ml-1 mr-3 h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
                                 Drafting...
@@ -212,11 +153,11 @@ ${keyPoints}
                 <textarea
                     id="key-points"
                     value={keyPoints}
-                    onChange={handleKeyPointsChange}
+                    onChange={(e) => setKeyPoints(e.target.value)}
                     placeholder="1. Correct their false statement about X..."
                     className="w-full h-32 p-3 bg-slate-900 border border-slate-700 rounded-lg focus:ring-2 focus:ring-amber-400 focus:outline-none transition-shadow duration-200 disabled:opacity-50"
                     aria-label="Your key points for the response"
-                    disabled={isLoading}
+                    disabled={isLoadingDraft}
                 />
             </div>
             

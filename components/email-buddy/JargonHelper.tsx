@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { explainJargon } from '../../services/aiService';
 import { getFriendlyErrorMessage } from '../../utils/errorUtils';
@@ -7,12 +6,12 @@ import SpinnerIcon from '../icons/SpinnerIcon';
 import AlertTriangleIcon from '../icons/AlertTriangleIcon';
 import ClipboardIcon from '../icons/ClipboardIcon';
 import ClipboardCheckIcon from '../icons/ClipboardCheckIcon';
+import { useEmailBuddy } from '../../hooks/useEmailBuddy';
 
-interface JargonHelperProps {
-    jargon: Array<{ term: string; context: string; }>;
-}
+const JargonHelper: React.FC = () => {
+    const { analysis } = useEmailBuddy();
+    const jargon = analysis?.legal_jargon || [];
 
-const JargonHelper: React.FC<JargonHelperProps> = ({ jargon }) => {
     const [expandedTerm, setExpandedTerm] = useState<string | null>(null);
     const [explanation, setExplanation] = useState<Record<string, { explanation: string; suggested_question: string; }>>({});
     const [loadingTerm, setLoadingTerm] = useState<string | null>(null);
@@ -25,6 +24,15 @@ const JargonHelper: React.FC<JargonHelperProps> = ({ jargon }) => {
             return () => clearTimeout(timer);
         }
     }, [copiedTerm]);
+    
+    // When analysis changes, reset local state to prevent showing stale data
+    useEffect(() => {
+        setExpandedTerm(null);
+        setExplanation({});
+        setLoadingTerm(null);
+        setError(null);
+    }, [analysis]);
+
 
     const handleToggleTerm = async (term: string, context: string) => {
         if (expandedTerm === term) {
@@ -55,6 +63,10 @@ const JargonHelper: React.FC<JargonHelperProps> = ({ jargon }) => {
         navigator.clipboard.writeText(text);
         setCopiedTerm(term);
     };
+    
+    if (jargon.length === 0) {
+        return null;
+    }
 
     return (
         <div className="p-4 bg-slate-900 border border-slate-700 rounded-lg space-y-3">

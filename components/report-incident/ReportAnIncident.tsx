@@ -30,7 +30,7 @@ const ReportAnIncident: React.FC<{ isOpen: boolean }> = ({ isOpen }) => {
     const isGenerateButtonDisabled = isLoading || !incidentData.narrative.trim() || !incidentData.jurisdiction.trim() || !incidentData.dateTime;
 
     if (reportResponse) {
-        return <ReportResult response={reportResponse} originalData={incidentData} onStartOver={reset} />;
+        return <ReportResult />;
     }
 
     return (

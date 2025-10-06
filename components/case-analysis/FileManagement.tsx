@@ -3,6 +3,7 @@ import XIcon from '../icons/XIcon';
 import FileTextIcon from '../icons/FileTextIcon';
 import AlertTriangleIcon from '../icons/AlertTriangleIcon';
 import CheckCircleIcon from '../icons/CheckCircleIcon';
+import { useCaseAnalysis } from '../../hooks/useCaseAnalysis';
 
 const UploadCloudIcon: React.FC = () => (
     <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-gray-400">
@@ -10,14 +11,8 @@ const UploadCloudIcon: React.FC = () => (
     </svg>
 );
 
-interface FileManagementProps {
-    files: File[];
-    onFilesChange: (files: File[]) => void;
-    isLoading: boolean;
-    onInteraction: () => void;
-}
-
-const FileManagement: React.FC<FileManagementProps> = ({ files, onFilesChange, isLoading, onInteraction }) => {
+const FileManagement: React.FC = () => {
+    const { files, setFiles: onFilesChange, isLoading } = useCaseAnalysis();
     const [fileError, setFileError] = useState<string | null>(null);
     const [isDragging, setIsDragging] = useState(false);
     const [justDropped, setJustDropped] = useState(false);
@@ -46,7 +41,6 @@ const FileManagement: React.FC<FileManagementProps> = ({ files, onFilesChange, i
     
         if (newFiles.length > 0) {
             onFilesChange([...files, ...newFiles]);
-            onInteraction();
     
             setJustDropped(true);
             setTimeout(() => setJustDropped(false), 500);

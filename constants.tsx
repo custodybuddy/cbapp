@@ -205,5 +205,106 @@ Best,
 Your email has been received and its contents have been noted.
 
 [Your Name]`
+    },
+    {
+        category: 'Scheduling',
+        title: 'Proposing a One-Time Schedule Change',
+        description: 'A clear and respectful way to ask for a temporary change, providing a reason and a proposed alternative.',
+        body: `Subject: Request for Schedule Change on [Date]
+
+Hi [Co-Parent's Name],
+
+I am writing to request a one-time change to the parenting schedule. I have a [Brief, Neutral Reason, e.g., 'work commitment'] on [Date], and I would like to propose we swap weekends.
+
+I can take the children on your weekend of [Proposed New Date], and you can have them on my scheduled weekend of [Original Date].
+
+Please let me know if this works for you by [Date to Respond By] so we can plan accordingly.
+
+Thanks,
+[Your Name]`
+    },
+    {
+        category: 'Scheduling',
+        title: 'Addressing Consistent Lateness',
+        description: 'A firm BIFF-style email to address a pattern of lateness for exchanges and establish a clear boundary.',
+        body: `Subject: Regarding Exchange Times
+
+Hi [Co-Parent's Name],
+
+I am writing to address the exchange times for the children.
+
+The court order states that exchanges are to occur at [Time]. Over the past [Number] exchanges on [List of Dates], you have been late by [X, Y, and Z] minutes respectively. This creates uncertainty for the children.
+
+Moving forward, I will be at the exchange location at [Time] and will wait for 15 minutes. If you are later than that, I will have to document it as a missed exchange. Please confirm you will adhere to the schedule.
+
+Best,
+[Your Name]`
+    },
+    {
+        category: 'Financial',
+        title: 'Disagreeing with a Section 7 Expense',
+        description: 'A formal response when you do not agree that a proposed cost is a valid Section 7 / special expense.',
+        body: `Subject: Re: Expense for [Expense Name]
+
+Hi [Co-Parent's Name],
+
+I have received your request for payment regarding [Expense Name].
+
+After reviewing our separation agreement (Clause [Clause Number]), I do not agree that this qualifies as a special or extraordinary expense that we are required to share. My understanding is that this falls under [e.g., 'regular monthly child support', 'discretionary spending'].
+
+Therefore, I am not able to contribute to this expense.
+
+Regards,
+[Your Name]`
+    },
+    {
+        category: 'Financial',
+        title: 'Proposing a Payment Plan',
+        description: 'Use this when you agree to a large, shared expense but need to arrange a payment schedule.',
+        body: `Subject: Payment for [Child's Name]'s [Expense Name]
+
+Hi [Co-Parent's Name],
+
+Thanks for sending over the information for [Child's Name]'s [Expense Name]. I agree this is a necessary expense.
+
+Due to the size of the amount ($[Total Amount]), I would like to propose a payment plan for my half ($[Your Half]). I can make [Number] payments of $[Payment Amount] on the following dates:
+- [Date 1]
+- [Date 2]
+- [Date 3]
+
+Please let me know if this payment schedule is acceptable to you.
+
+Thanks,
+[Your Name]`
+    },
+    {
+        category: 'Communication Boundaries',
+        title: 'Moving Communication to a Parenting App',
+        description: 'To formalize communication and move it to a trackable platform like OurFamilyWizard or 2houses.',
+        body: `Subject: Moving our Co-Parenting Communication
+
+Hi [Co-Parent's Name],
+
+To ensure our communications are organized and focused on the children, I will be using [Parenting App Name] for all co-parenting matters moving forward, effective [Date].
+
+I have sent you an invitation to join. Please use the platform to discuss schedules, expenses, and other child-related topics. This will help us keep a clear record and avoid misunderstandings.
+
+Thank you,
+[Your Name]`
+    },
+    {
+        category: 'Communication Boundaries',
+        title: 'Responding to Intrusive Questions',
+        description: 'A firm but polite way to shut down questions about your personal life that are not relevant to co-parenting.',
+        body: `Subject: Re: [Original Subject]
+
+Hi [Co-Parent's Name],
+
+I've received your email.
+
+My personal life does not impact the children and is not a topic for our discussion. Please keep our communication focused solely on co-parenting logistics.
+
+Best,
+[Your Name]`
     }
 ];

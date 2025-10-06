@@ -2,6 +2,9 @@ import React, { lazy, Suspense } from 'react';
 import { useModal } from '../hooks/useModal';
 import Modal from './Modal';
 import SpinnerIcon from './icons/SpinnerIcon';
+import { IncidentReportProvider } from '../contexts/IncidentReportContext';
+import { EmailBuddyProvider } from '../contexts/EmailBuddyContext';
+import { CaseAnalysisProvider } from '../contexts/CaseAnalysisContext';
 
 // Lazy load the components that are opened in modals
 const CaseAnalysisTool = lazy(() => import('./CaseAnalysisTool'));
@@ -28,27 +31,33 @@ const GlobalModals: React.FC = () => {
                 onClose={closeModal}
                 title="Family Law Case Analysis Tool"
             >
-                <Suspense fallback={<SuspenseFallback />}>
-                    <CaseAnalysisTool isOpen={activeModal === 'case-analysis'} />
-                </Suspense>
+                <CaseAnalysisProvider>
+                    <Suspense fallback={<SuspenseFallback />}>
+                        <CaseAnalysisTool isOpen={activeModal === 'case-analysis'} />
+                    </Suspense>
+                </CaseAnalysisProvider>
             </Modal>
             <Modal
                 isOpen={activeModal === 'email-buddy'}
                 onClose={closeModal}
                 title="Email Law Buddy"
             >
-                <Suspense fallback={<SuspenseFallback />}>
-                    <EmailLawBuddy isOpen={activeModal === 'email-buddy'} />
-                </Suspense>
+                <EmailBuddyProvider>
+                    <Suspense fallback={<SuspenseFallback />}>
+                        <EmailLawBuddy isOpen={activeModal === 'email-buddy'} />
+                    </Suspense>
+                </EmailBuddyProvider>
             </Modal>
             <Modal
                 isOpen={activeModal === 'report-incident'}
                 onClose={closeModal}
                 title="Report An Incident"
             >
-                <Suspense fallback={<SuspenseFallback />}>
-                    <ReportAnIncident isOpen={activeModal === 'report-incident'} />
-                </Suspense>
+                <IncidentReportProvider>
+                    <Suspense fallback={<SuspenseFallback />}>
+                        <ReportAnIncident isOpen={activeModal === 'report-incident'} />
+                    </Suspense>
+                </IncidentReportProvider>
             </Modal>
         </>
     );

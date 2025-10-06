@@ -1,5 +1,5 @@
 import React, { useRef, useState } from 'react';
-import { IncidentReport, IncidentData } from '../../hooks/useIncidentReporter';
+import { useIncidentReporter } from '../../hooks/useIncidentReporter';
 import DownloadIcon from '../icons/DownloadIcon';
 import RotateCwIcon from '../icons/RotateCwIcon';
 import Feedback from '../Feedback';
@@ -15,16 +15,28 @@ import StopCircleIcon from '../icons/StopCircleIcon';
 import PauseIcon from '../icons/PauseIcon';
 import { cleanReportForSpeech } from '../../utils/stringUtils';
 
-interface ReportResultProps {
-    response: IncidentReport;
-    originalData: IncidentData;
-    onStartOver: () => void;
-}
-
-const ReportResult: React.FC<ReportResultProps> = ({ response, originalData, onStartOver }) => {
+const ReportResult: React.FC = () => {
+    const { reportResponse: response, incidentData: originalData, reset: onStartOver } = useIncidentReporter();
     const reportRef = useRef<HTMLDivElement>(null);
     const [isExportingPdf, setIsExportingPdf] = useState(false);
     const { isSpeaking, isPaused, speak, cancel, pause, resume } = useTextToSpeech();
+
+    // The parent component logic ensures this component only renders when `response` is available.
+    // Adding a fallback for robustness.
+    if (!response || !originalData) {
+        return (
+            <div className="flex flex-col items-center justify-center p-8 text-center">
+                <p className="text-gray-400">Could not load report data.</p>
+                <button
+                    onClick={onStartOver}
+                    className="mt-4 flex items-center gap-2 text-sm text-amber-400 hover:text-amber-300 font-semibold transition-colors"
+                >
+                    <RotateCwIcon className="w-4 h-4" />
+                    Start Over
+                </button>
+            </div>
+        );
+    }
 
     const generateReportText = () => {
         let text = `INCIDENT REPORT\n`;

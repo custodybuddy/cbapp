@@ -1,12 +1,14 @@
 import React from 'react';
 import SparklesIcon from '../icons/SparklesIcon';
-import { Analysis } from '../EmailLawBuddy';
+import { useEmailBuddy } from '../../hooks/useEmailBuddy';
 
-interface EmailAnalysisDisplayProps {
-    analysis: Analysis;
-}
+const EmailAnalysisDisplay: React.FC = () => {
+    const { analysis } = useEmailBuddy();
 
-const EmailAnalysisDisplay: React.FC<EmailAnalysisDisplayProps> = ({ analysis }) => {
+    if (!analysis) {
+        return null;
+    }
+
     return (
         <div className="p-4 bg-slate-900 border border-slate-700 rounded-lg">
             <h3 className="text-lg font-bold text-amber-400 mb-3 flex items-center gap-2">

@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import ThumbsUpIcon from './icons/ThumbsUpIcon';
 import ThumbsDownIcon from './icons/ThumbsDownIcon';

@@ -11,6 +11,8 @@
  * - Paragraphs (groups consecutive lines, separated by blank lines)
  */
 export const formatMarkdown = (text: string): string => {
+    if (!text) return '';
+
     const processInlineFormatting = (str: string): string => {
         return str
             .replace(/\*\*\*(.*?)\*\*\*/g, '<strong><em>$1</em></strong>') // Bold + Italic

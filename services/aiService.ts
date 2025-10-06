@@ -1,4 +1,3 @@
-
 // Fix: Refactor the entire AI service to use the @google/genai SDK instead of OpenAI.
 import { GoogleGenAI, Type } from "@google/genai";
 import { fileToDataUrl, pdfToText } from '../utils/fileUtils';
@@ -9,15 +8,28 @@ import { jargonExplanationSystemPrompt } from '../prompts';
 // The API key is now correctly sourced from environment variables as per guidelines.
 export const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
+// Define the interface for the structured analysis response.
+export interface CaseAnalysisReport {
+    documentTypes: Array<{ type: string; source: string; }>;
+    summary: string;
+    keyClauses: Array<{ clause: string; explanation: string; source: string; }>;
+    discrepancies: Array<{ description: string; sources: string[]; }>;
+    legalJargon: Array<{ term: string; explanation:string; }>;
+    actionItems: Array<{ item: string; deadline?: string; source: string; }>;
+    suggestedNextSteps: string; // Markdown formatted
+    disclaimer: string;
+}
+
+
 /** Prepares the content parts for the Gemini API request from files and a text query. */
 export const prepareContentParts = async (files: File[], query: string): Promise<any[]> => {
     const parts: any[] = [];
     
-    // Add image parts first.
+    // Process all files and aggregate text content.
+    let combinedText = '';
     for (const file of files) {
         if (file.type.startsWith('image/')) {
             const dataUrl = await fileToDataUrl(file);
-            // Extract pure Base64 data from the data URL.
             const base64Data = dataUrl.split(',')[1];
             parts.push({
                 inlineData: {
@@ -25,51 +37,115 @@ export const prepareContentParts = async (files: File[], query: string): Promise
                     data: base64Data
                 }
             });
-        }
-    }
-    
-    let combinedText = '';
-    // Aggregate all text-based content into a single string.
-    for (const file of files) {
-        if (file.type === 'application/pdf') {
+        } else if (file.type === 'application/pdf') {
             const extractedText = await pdfToText(file);
             combinedText += `\n\n--- START OF DOCUMENT: ${file.name} ---\n\n${extractedText}\n\n--- END OF DOCUMENT: ${file.name} ---\n\n`;
         }
     }
 
+    // Add pasted text from the user.
     if (query.trim()) {
         combinedText += `\n\n--- START OF PASTED TEXT ---\n\n${query}\n\n--- END OF PASTED TEXT ---\n\n`;
     }
 
-    // Add the text part last, as it often contains the primary prompt.
+    // Add the combined text as the final part.
     if (combinedText.trim()) {
         parts.push({ text: combinedText });
     }
 
-    // If there are only images but no initial text prompt, add a default one.
-    if (parts.length > 0 && !parts.some(p => p.text)) {
-        parts.push({ text: 'Please extract and analyze the content of the attached image(s) based on your instructions.' });
-    }
-    
     return parts;
 };
 
 /**
- * Analyzes case documents using Gemini with multimodal capabilities.
+ * Analyzes case documents using Gemini with JSON mode for a structured response.
  * @param parts - An array of content parts (text and/or images) for the model.
  * @param systemPrompt - The system instruction for the model.
- * @returns A promise that resolves to the generated text response.
+ * @returns A promise that resolves to the parsed JSON object of the analysis.
  */
-export const analyzeCaseDocuments = async (parts: any[], systemPrompt: string): Promise<string> => {
+export const analyzeCaseDocuments = async (parts: any[], systemPrompt: string): Promise<CaseAnalysisReport> => {
     const response = await ai.models.generateContent({
         model: 'gemini-2.5-flash',
         contents: { parts },
         config: {
             systemInstruction: systemPrompt,
+            responseMimeType: "application/json",
+            responseSchema: {
+                type: Type.OBJECT,
+                properties: {
+                    documentTypes: {
+                        type: Type.ARRAY,
+                        description: "List of identified document types.",
+                        items: {
+                            type: Type.OBJECT,
+                            properties: {
+                                type: { type: Type.STRING, description: "e.g., 'Court Order', 'Email Correspondence'" },
+                                source: { type: Type.STRING, description: "Filename or 'Pasted Text'" },
+                            },
+                             required: ['type', 'source']
+                        }
+                    },
+                    summary: { type: Type.STRING, description: "Plain English summary." },
+                    keyClauses: {
+                        type: Type.ARRAY,
+                        description: "Key clauses, obligations, or rules found in the documents.",
+                        items: {
+                            type: Type.OBJECT,
+                            properties: {
+                                clause: { type: Type.STRING, description: "A direct quote or summary of the clause." },
+                                explanation: { type: Type.STRING, description: "A simple explanation of what it means." },
+                                source: { type: Type.STRING, description: "The filename or source of the clause." },
+                            },
+                             required: ['clause', 'explanation', 'source']
+                        }
+                    },
+                    discrepancies: {
+                        type: Type.ARRAY,
+                        description: "Conflicts or contradictions between the provided documents.",
+                        items: {
+                            type: Type.OBJECT,
+                            properties: {
+                                description: { type: Type.STRING, description: "A clear description of the discrepancy." },
+                                sources: { type: Type.ARRAY, items: { type: Type.STRING }, description: "A list of the filenames involved in the conflict." },
+                            },
+                             required: ['description', 'sources']
+                        }
+                    },
+                    legalJargon: {
+                        type: Type.ARRAY,
+                        description: "Legal terms that might be confusing.",
+                        items: {
+                            type: Type.OBJECT,
+                            properties: {
+                                term: { type: Type.STRING },
+                                explanation: { type: Type.STRING, description: "A simple definition." },
+                            },
+                            required: ['term', 'explanation']
+                        }
+                    },
+                    actionItems: {
+                        type: Type.ARRAY,
+                        description: "Deadlines or actions required of the user.",
+                        items: {
+                            type: Type.OBJECT,
+                            properties: {
+                                item: { type: Type.STRING, description: "The required action." },
+                                deadline: { type: Type.STRING, description: "Optional deadline, e.g., YYYY-MM-DD" },
+                                source: { type: Type.STRING, description: "The source document for the action item." },
+                            },
+                             required: ['item', 'source']
+                        }
+                    },
+                    suggestedNextSteps: { type: Type.STRING, description: "Markdown formatted string of next steps." },
+                    disclaimer: { type: Type.STRING, description: "Mandatory legal disclaimer." }
+                },
+                required: ['documentTypes', 'summary', 'keyClauses', 'discrepancies', 'suggestedNextSteps', 'disclaimer']
+            }
         }
     });
-    return response.text;
+    
+    return JSON.parse(response.text);
 };
+
 
 /**
  * Analyzes an email for tone, summary, and key demands using Gemini's JSON mode.
