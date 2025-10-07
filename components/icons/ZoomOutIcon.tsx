@@ -1,4 +1,3 @@
-
 import React from 'react';
 
 const ZoomOutIcon: React.FC<{ className?: string }> = ({ className }) => (

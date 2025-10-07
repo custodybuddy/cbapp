@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { useCaseAnalysis } from '../hooks/useCaseAnalysis';
+import { useCaseAnalysisState, useCaseAnalysisActions } from '../hooks/useCaseAnalysis';
 import FileManagement from './case-analysis/FileManagement';
 import AnalysisResult from './case-analysis/AnalysisResult';
 import RotateCwIcon from './icons/RotateCwIcon';
@@ -10,14 +10,19 @@ const CaseAnalysisTool: React.FC<{ isOpen: boolean }> = ({ isOpen }) => {
     const {
         files,
         pastedText,
-        setPastedText,
+        jurisdiction,
         isLoading,
         error,
         analysisResponse,
+    } = useCaseAnalysisState();
+
+    const {
+        setPastedText,
+        setJurisdiction,
         handleAnalysis,
         reset,
         setError
-    } = useCaseAnalysis();
+    } = useCaseAnalysisActions();
     
     // Reset state when the modal is closed
     useEffect(() => {
@@ -32,8 +37,12 @@ const CaseAnalysisTool: React.FC<{ isOpen: boolean }> = ({ isOpen }) => {
     const handleTextChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
         setPastedText(e.target.value);
     };
+    
+    const handleJurisdictionChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        setJurisdiction(e.target.value);
+    };
 
-    const isAnalyzeButtonDisabled = isLoading || (files.length === 0 && !pastedText.trim());
+    const isAnalyzeButtonDisabled = isLoading || (files.length === 0 && !pastedText.trim()) || !jurisdiction.trim();
 
     return (
         <div className="space-y-6">
@@ -54,6 +63,21 @@ const CaseAnalysisTool: React.FC<{ isOpen: boolean }> = ({ isOpen }) => {
                             placeholder="Paste email content or legal text here..."
                             className="w-full h-32 p-3 bg-slate-900 border border-slate-700 rounded-lg focus:ring-2 focus:ring-amber-400 focus:outline-none transition-shadow duration-200 disabled:opacity-50"
                             disabled={isLoading}
+                        />
+                    </div>
+                    
+                    <div>
+                        <label htmlFor="jurisdiction-case" className="block text-sm font-medium text-gray-300 mb-1">Jurisdiction (Province/State)<span aria-hidden="true" className="text-red-400 ml-1">*</span></label>
+                        <input
+                            type="text"
+                            id="jurisdiction-case"
+                            name="jurisdiction"
+                            value={jurisdiction}
+                            onChange={handleJurisdictionChange}
+                            placeholder="e.g., Ontario, Canada"
+                            className="w-full p-2 bg-slate-900 border border-slate-700 rounded-lg focus:ring-2 focus:ring-amber-400 focus:outline-none"
+                            disabled={isLoading}
+                            required
                         />
                     </div>
                     
@@ -91,7 +115,7 @@ const CaseAnalysisTool: React.FC<{ isOpen: boolean }> = ({ isOpen }) => {
             )}
 
             {isLoading && !analysisResponse && (
-                <div className="text-center p-4 text-gray-400">
+                <div className="text-center p-4 text-gray-400" role="status">
                     <p className="font-semibold text-amber-400">AI is analyzing your documents...</p>
                     <p className="text-sm">This may take a moment, especially for large or multiple files.</p>
                 </div>

@@ -1,28 +1,61 @@
-import React, { useRef, useState } from 'react';
-import DownloadIcon from '../icons/DownloadIcon';
-import SpeakerIcon from '../icons/SpeakerIcon';
-import StopCircleIcon from '../icons/StopCircleIcon';
+import React, { useRef, useState, useEffect } from 'react';
+import { useCaseAnalysisState } from '../../hooks/useCaseAnalysis';
 import { formatMarkdown } from '../../utils/markdownParser';
 import { useTextToSpeech } from '../../hooks/useTextToSpeech';
-import Feedback from '../Feedback';
-import { exportTextFile, exportElementAsPDF } from '../../utils/exportUtils';
+import { useTextSizer, MIN_SCALE, MAX_SCALE } from '../../hooks/useTextSizer';
+import { exportElementAsPDF } from '../../utils/exportUtils';
 import { getISODate, getFormattedDate } from '../../utils/dateUtils';
-import { cleanAnalysisForSpeech } from '../../utils/stringUtils';
+import { cleanAnalysisForSpeech, linkifyLegislation } from '../../utils/stringUtils';
+
+import Feedback from '../Feedback';
+import SpeakerIcon from '../icons/SpeakerIcon';
+import StopCircleIcon from '../icons/StopCircleIcon';
 import PauseIcon from '../icons/PauseIcon';
-import { useCaseAnalysis } from '../../hooks/useCaseAnalysis';
-import FilePdfIcon from '../icons/FilePdfIcon';
 import SpinnerIcon from '../icons/SpinnerIcon';
+import FilePdfIcon from '../icons/FilePdfIcon';
+import LightbulbIcon from '../icons/LightbulbIcon';
+import GavelIcon from '../icons/GavelIcon';
 import AlertTriangleIcon from '../icons/AlertTriangleIcon';
 import FileTextIcon from '../icons/FileTextIcon';
-import LightbulbIcon from '../icons/LightbulbIcon';
+import ZoomInIcon from '../icons/ZoomInIcon';
+import ZoomOutIcon from '../icons/ZoomOutIcon';
+import RefreshCwIcon from '../icons/RefreshCwIcon';
+import ClipboardIcon from '../icons/ClipboardIcon';
+import ClipboardCheckIcon from '../icons/ClipboardCheckIcon';
+import PencilIcon from '../icons/PencilIcon';
 
+
+type AnalysisTab = 'summary' | 'obligations' | 'flags' | 'details';
 
 const AnalysisResult: React.FC = () => {
-    const { analysisResponse: response } = useCaseAnalysis();
+    const { analysisResponse: response, jurisdiction } = useCaseAnalysisState();
     const reportRef = useRef<HTMLDivElement>(null);
     const { isSpeaking, isPaused, speak, cancel, pause, resume } = useTextToSpeech();
     const [isExportingPdf, setIsExportingPdf] = useState(false);
+    const [activeTab, setActiveTab] = useState<AnalysisTab>('summary');
+    const [renderAllForPdf, setRenderAllForPdf] = useState(false);
+    const [isCopied, setIsCopied] = useState(false);
+    const [isStrategicEmailEditing, setIsStrategicEmailEditing] = useState(false);
+    const [editedStrategicEmail, setEditedStrategicEmail] = useState(response?.strategicCommunication?.draftEmail || '');
+    const textSizer = useTextSizer();
     
+    useEffect(() => {
+        if (isCopied) {
+            const timer = setTimeout(() => setIsCopied(false), 2000);
+            return () => clearTimeout(timer);
+        }
+    }, [isCopied]);
+
+    useEffect(() => {
+        // When the main response changes (e.g., new analysis), reset the email draft and editing state.
+        if (response?.strategicCommunication?.draftEmail) {
+            setEditedStrategicEmail(response.strategicCommunication.draftEmail);
+        } else {
+            setEditedStrategicEmail('');
+        }
+        setIsStrategicEmailEditing(false);
+    }, [response]);
+
     if (!response) {
         return (
             <div className="text-center p-4 text-gray-400">
@@ -31,49 +64,14 @@ const AnalysisResult: React.FC = () => {
         );
     }
     
-    const generateReportText = () => {
-        let text = `CUSTODYBUDDY.COM - AI CASE ANALYSIS\n`;
-        text += `========================================\n\n`;
-        text += `DISCLAIMER: ${response.disclaimer}\n\n`;
-        text += `----------------------------------------\n`;
-        text += `SUMMARY\n`;
-        text += `----------------------------------------\n`;
-        text += `${response.summary}\n\n`;
-        text += `----------------------------------------\n`;
-        text += `KEY CLAUSES & OBLIGATIONS\n`;
-        text += `----------------------------------------\n`;
-        response.keyClauses?.forEach(item => {
-            text += `- Clause: ${item.clause} (Source: ${item.source})\n`;
-            text += `  Explanation: ${item.explanation}\n\n`;
-        });
-        text += `\n`;
-        text += `----------------------------------------\n`;
-        text += `POTENTIAL DISCREPANCIES & FLAGS\n`;
-        text += `----------------------------------------\n`;
-        response.discrepancies?.forEach(item => {
-            text += `- CONFLICT: ${item.description}\n`;
-            text += `  Sources: ${item.sources.join(', ')}\n\n`;
-        });
-        text += `\n`;
-        text += `----------------------------------------\n`;
-        text += `SUGGESTED NEXT STEPS\n`;
-        text += `----------------------------------------\n`;
-        text += `${response.suggestedNextSteps}\n\n`;
-        
-        return text;
-    };
-    
-    const handleExportTxt = () => {
-        if (!response) return;
-        const date = getISODate();
-        const filename = `CustodyBuddy-Analysis-${date}.txt`;
-        exportTextFile(generateReportText(), filename);
-    };
-    
     const handleExportPdf = async () => {
         if (!reportRef.current) return;
         
         setIsExportingPdf(true);
+        setRenderAllForPdf(true);
+
+        await new Promise(resolve => setTimeout(resolve, 100));
+
         try {
             const isoDate = getISODate();
             const friendlyDate = getFormattedDate();
@@ -84,6 +82,7 @@ const AnalysisResult: React.FC = () => {
             console.error("Failed to export PDF:", error);
             alert("Sorry, there was an issue creating the PDF. Please try again.");
         } finally {
+            setRenderAllForPdf(false);
             setIsExportingPdf(false);
         }
     };
@@ -103,157 +102,204 @@ const AnalysisResult: React.FC = () => {
         cancel();
     };
 
+    const handleCopyStrategicEmail = () => {
+        navigator.clipboard.writeText(editedStrategicEmail);
+        setIsCopied(true);
+    };
+
+    const tabConfig: { id: AnalysisTab; label: string; icon: React.ReactNode; hasContent: boolean }[] = [
+        { id: 'summary', label: 'Summary', icon: <LightbulbIcon className="w-4 h-4" />, hasContent: !!response.summary },
+        { id: 'obligations', label: 'Obligations', icon: <GavelIcon className="w-4 h-4" />, hasContent: (response.keyClauses?.length ?? 0) > 0 || (response.actionItems?.length ?? 0) > 0 },
+        { id: 'flags', label: 'Red Flags', icon: <AlertTriangleIcon className="w-4 h-4" />, hasContent: (response.discrepancies?.length ?? 0) > 0 },
+        { id: 'details', label: 'Details', icon: <FileTextIcon className="w-4 h-4" />, hasContent: (response.legalJargon?.length ?? 0) > 0 || (response.documentTypes?.length ?? 0) > 0 },
+    ];
+
+    const currentTabContentIsAvailable = tabConfig.find(t => t.id === activeTab)?.hasContent;
+    if (!currentTabContentIsAvailable && !renderAllForPdf) {
+         const firstAvailableTab = tabConfig.find(t => t.hasContent);
+         if (firstAvailableTab) setActiveTab(firstAvailableTab.id);
+    }
+
+    const linkifiedNextSteps = response.suggestedNextSteps ? linkifyLegislation(response.suggestedNextSteps, jurisdiction) : '';
+
+
     return (
         <div className="mt-6 animate-fade-in-up">
             <div className="flex flex-col gap-4 md:flex-row md:justify-between items-start md:items-center p-4 bg-slate-800 border border-slate-700 rounded-t-lg">
                  <h3 className="text-xl font-bold text-amber-400 flex-shrink-0">AI Analysis Report</h3>
                  <div className="flex flex-wrap items-center justify-start gap-2">
-                    <button
-                        onClick={handlePlayPause}
-                        className="flex items-center gap-2 bg-slate-700 hover:bg-slate-600 text-white font-semibold py-2 px-4 rounded-lg transition-all"
-                        aria-label={!isSpeaking ? "Read analysis aloud" : isPaused ? "Resume reading" : "Pause reading"}
-                    >
-                        {!isSpeaking || isPaused ? <SpeakerIcon className="w-4 h-4" /> : <PauseIcon className="w-4 h-4" />}
-                        <span>{!isSpeaking ? 'Read Aloud' : isPaused ? 'Resume' : 'Pause'}</span>
-                    </button>
-                    {isSpeaking && (
-                         <button
-                            onClick={handleStop}
-                            className="flex items-center gap-2 bg-slate-700 hover:bg-slate-600 text-white font-semibold py-2 px-4 rounded-lg transition-all"
-                            aria-label="Stop reading analysis"
-                        >
-                            <StopCircleIcon className="w-4 h-4" />
-                            <span>Stop</span>
+                    <div className="flex items-center gap-2">
+                        <button onClick={handlePlayPause} className="flex items-center gap-2 bg-slate-700 hover:bg-slate-600 text-white font-semibold py-2 px-3 rounded-lg transition-all text-sm" aria-label={!isSpeaking ? "Read analysis aloud" : isPaused ? "Resume reading" : "Pause reading"}>
+                            {!isSpeaking || isPaused ? <SpeakerIcon className="w-4 h-4" /> : <PauseIcon className="w-4 h-4" />}
+                            <span>{!isSpeaking ? 'Read' : isPaused ? 'Resume' : 'Pause'}</span>
                         </button>
-                    )}
-                     <button
-                        onClick={handleExportTxt}
-                        className="flex items-center gap-2 bg-slate-700 hover:bg-slate-600 text-white font-semibold py-2 px-4 rounded-lg transition-all"
-                        aria-label="Export analysis as a text file"
-                    >
-                        <DownloadIcon className="w-4 h-4" />
-                        <span>TXT</span>
-                    </button>
-                     <button
-                        onClick={handleExportPdf}
-                        disabled={isExportingPdf}
-                        className="flex items-center gap-2 bg-slate-700 hover:bg-slate-600 text-white font-semibold py-2 px-4 rounded-lg transition-all disabled:opacity-70 disabled:cursor-wait"
-                        aria-label={isExportingPdf ? "Creating PDF, please wait" : "Export analysis as a PDF file"}
-                    >
-                        {isExportingPdf ? (
-                            <SpinnerIcon className="w-4 h-4" />
-                        ) : (
-                            <FilePdfIcon className="w-4 h-4" />
+                        {isSpeaking && (
+                            <button onClick={handleStop} className="p-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg transition-all" aria-label="Stop reading analysis">
+                                <StopCircleIcon className="w-5 h-5" />
+                            </button>
                         )}
-                        <span>PDF</span>
-                    </button>
+                        <button onClick={handleExportPdf} disabled={isExportingPdf} className="flex items-center gap-2 bg-slate-700 hover:bg-slate-600 text-white font-semibold py-2 px-3 rounded-lg transition-all text-sm disabled:opacity-70 disabled:cursor-wait" aria-label={isExportingPdf ? "Creating PDF, please wait" : "Export analysis as a PDF file"}>
+                            {isExportingPdf ? <SpinnerIcon className="w-4 h-4" /> : <FilePdfIcon className="w-4 h-4" />}
+                            <span>PDF</span>
+                        </button>
+                    </div>
+                    <div className="flex items-center gap-1 p-1 bg-slate-700 rounded-lg">
+                        <button onClick={textSizer.decrease} disabled={textSizer.scale <= MIN_SCALE} className="p-1.5 text-white rounded-md hover:bg-slate-600 disabled:opacity-50 disabled:cursor-not-allowed" aria-label="Decrease text size">
+                            <ZoomOutIcon className="w-5 h-5" />
+                        </button>
+                         <button onClick={textSizer.reset} className="p-1.5 text-white rounded-md hover:bg-slate-600" aria-label="Reset text size">
+                            <RefreshCwIcon className="w-5 h-5" />
+                        </button>
+                         <button onClick={textSizer.increase} disabled={textSizer.scale >= MAX_SCALE} className="p-1.5 text-white rounded-md hover:bg-slate-600 disabled:opacity-50 disabled:cursor-not-allowed" aria-label="Increase text size">
+                            <ZoomInIcon className="w-5 h-5" />
+                        </button>
+                    </div>
                  </div>
             </div>
-            <div ref={reportRef} className="p-6 bg-slate-900 border-x border-b border-slate-700 rounded-b-lg space-y-8">
-                
-                {/* Section: Summary */}
-                <section>
-                    <h4 className="text-lg font-bold text-gray-200 mb-3">Summary</h4>
-                    <div
-                        className="text-gray-300 leading-relaxed prose prose-invert prose-p:my-2 prose-ul:my-2 prose-strong:text-amber-400 max-w-none"
-                        dangerouslySetInnerHTML={{ __html: formatMarkdown(response.summary) }}
-                    />
-                </section>
 
-                {/* Section: Discrepancies */}
-                {response.discrepancies?.length > 0 && (
-                     <section className="p-4 bg-red-900/20 border border-red-500/50 rounded-lg">
-                        <h4 className="text-lg font-bold text-red-400 mb-3 flex items-center gap-2">
-                            <AlertTriangleIcon className="w-5 h-5" />
-                            Potential Discrepancies & Flags
-                        </h4>
+            <div role="tablist" aria-label="Analysis Sections" className="flex border-b border-slate-700 bg-slate-900 overflow-x-auto">
+                {tabConfig.map(tab => tab.hasContent && (
+                    <button
+                        key={tab.id}
+                        id={`tab-${tab.id}`}
+                        onClick={() => setActiveTab(tab.id)}
+                        className={`flex items-center gap-2 px-4 py-3 text-sm font-semibold transition-colors border-b-2 flex-shrink-0 ${activeTab === tab.id ? 'border-amber-400 text-amber-400' : 'border-transparent text-gray-400 hover:text-white'}`}
+                        role="tab"
+                        aria-selected={activeTab === tab.id}
+                        aria-controls={`panel-${tab.id}`}
+                    >
+                        {tab.icon}
+                        {tab.label}
+                    </button>
+                ))}
+            </div>
+            
+            <div ref={reportRef} className="p-6 bg-slate-900 border-x border-b border-slate-700 rounded-b-lg prose prose-invert max-w-none">
+                {(activeTab === 'summary' || renderAllForPdf) && tabConfig[0].hasContent && (
+                    <section id="panel-summary" role="tabpanel" aria-labelledby="tab-summary" className={renderAllForPdf ? 'mb-8' : ''}>
+                        <div className="space-y-8">
+                            <div>
+                                <h4 className="text-xl font-bold text-gray-200">Summary</h4>
+                                <div className="text-gray-300 leading-relaxed" dangerouslySetInnerHTML={{ __html: formatMarkdown(linkifyLegislation(response.summary, jurisdiction)) }}/>
+                            </div>
+                             {response.suggestedNextSteps && (
+                                <div>
+                                    <h4 className="text-xl font-bold text-gray-200 mb-3 flex items-center gap-2"><LightbulbIcon className="w-5 h-5 text-amber-400" />Suggested Next Steps</h4>
+                                    <div className="text-gray-300 leading-relaxed" dangerouslySetInnerHTML={{ __html: formatMarkdown(linkifiedNextSteps) }}/>
+                                </div>
+                             )}
+                             {response.strategicCommunication && (
+                                <div className="p-4 bg-slate-800 border border-amber-400/50 rounded-lg not-prose">
+                                    <h4 className="text-lg font-bold text-amber-400 mb-3">Strategic Communication Prompt</h4>
+                                    <p className="text-sm text-gray-300 mb-4" dangerouslySetInnerHTML={{ __html: linkifyLegislation(response.strategicCommunication.recommendation, jurisdiction) }}/>
+                                    <div className="p-3 bg-slate-900 rounded-md border border-slate-700 relative">
+                                        <div className="absolute top-2 right-2 flex items-center gap-1 z-10 no-pdf">
+                                            <button onClick={() => setIsStrategicEmailEditing(!isStrategicEmailEditing)} className="flex items-center gap-1.5 bg-slate-700 hover:bg-slate-600 text-white font-semibold py-1 px-2 rounded-md transition-all text-xs">
+                                                <PencilIcon className="w-3 h-3" />
+                                                <span>{isStrategicEmailEditing ? 'Done' : 'Edit'}</span>
+                                            </button>
+                                            <button onClick={handleCopyStrategicEmail} className="flex items-center gap-1.5 bg-slate-700 hover:bg-slate-600 text-white font-semibold py-1 px-2 rounded-md transition-all text-xs" aria-label="Copy draft email">
+                                                {isCopied ? <ClipboardCheckIcon /> : <ClipboardIcon />}
+                                                <span>{isCopied ? 'Copied!' : 'Copy'}</span>
+                                            </button>
+                                        </div>
+                                        {isStrategicEmailEditing ? (
+                                            <textarea
+                                                value={editedStrategicEmail}
+                                                onChange={(e) => setEditedStrategicEmail(e.target.value)}
+                                                className="w-full h-48 mt-8 p-0 bg-transparent border-0 focus:outline-none focus:ring-0 resize-none text-sm text-gray-300 font-sans"
+                                                aria-label="Edit strategic email draft"
+                                            />
+                                        ) : (
+                                            <div className="text-gray-300 leading-relaxed prose prose-invert max-w-none text-sm pt-8" dangerouslySetInnerHTML={{ __html: formatMarkdown(editedStrategicEmail) }} />
+                                        )}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    </section>
+                )}
+                 {(activeTab === 'obligations' || renderAllForPdf) && tabConfig[1].hasContent && (
+                    <section id="panel-obligations" role="tabpanel" aria-labelledby="tab-obligations" className={renderAllForPdf ? 'mb-8' : ''}>
+                        <div className="space-y-8">
+                            {response.keyClauses?.length > 0 && (
+                                <div>
+                                    <h4 className="text-xl font-bold text-gray-200 mb-3">Key Clauses & Obligations</h4>
+                                    <div className="space-y-4">
+                                        {response.keyClauses.map((item, i) => (
+                                            <div key={i} className="p-3 bg-slate-800 rounded-md border border-slate-700 not-prose">
+                                                <blockquote className="text-gray-300 font-semibold italic border-l-4 border-amber-400 pl-4">"{item.clause}"</blockquote>
+                                                <p className="text-gray-400 mt-2 text-sm" dangerouslySetInnerHTML={{ __html: linkifyLegislation(item.explanation, jurisdiction) }} />
+                                                <p className="text-xs text-amber-400/80 mt-2">Source: {item.source}</p>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+                            {response.actionItems?.length > 0 && (
+                                <div>
+                                    <h4 className="text-xl font-bold text-gray-200 mb-3">Action Items & Deadlines</h4>
+                                    <ul className="list-disc pl-5 space-y-2 text-gray-300">
+                                        {response.actionItems.map((item, i) => (
+                                           <li key={i}>
+                                               <span dangerouslySetInnerHTML={{ __html: linkifyLegislation(item.item, jurisdiction) }} />
+                                               {item.deadline && <span className="ml-2 text-sm font-semibold text-amber-400">(Deadline: {item.deadline})</span>}
+                                               <span className="ml-2 text-xs text-gray-500">(Source: {item.source})</span>
+                                           </li>
+                                        ))}
+                                    </ul>
+                                </div>
+                            )}
+                        </div>
+                    </section>
+                )}
+                {(activeTab === 'flags' || renderAllForPdf) && tabConfig[2].hasContent && (
+                     <section id="panel-flags" role="tabpanel" aria-labelledby="tab-flags" className={`${renderAllForPdf ? 'mb-8' : ''} p-4 bg-red-900/20 border border-red-500/50 rounded-lg not-prose`}>
+                        <h4 className="text-xl font-bold text-red-400 mb-3 flex items-center gap-2"><AlertTriangleIcon className="w-5 h-5" />Potential Discrepancies & Flags</h4>
                         <div className="space-y-4">
-                            {response.discrepancies.map((item, i) => (
+                            {response.discrepancies?.map((item, i) => (
                                 <div key={i} className="text-sm">
-                                    <p className="text-red-300">{item.description}</p>
+                                    <p className="text-red-300" dangerouslySetInnerHTML={{ __html: linkifyLegislation(item.description, jurisdiction) }} />
                                     <p className="text-xs text-red-400/80 mt-1">Sources: {item.sources.join(', ')}</p>
                                 </div>
                             ))}
                         </div>
                     </section>
                 )}
-
-                {/* Section: Key Clauses */}
-                {response.keyClauses?.length > 0 && (
-                    <section>
-                        <h4 className="text-lg font-bold text-gray-200 mb-3">Key Clauses & Obligations</h4>
-                        <div className="space-y-4">
-                            {response.keyClauses.map((item, i) => (
-                                <div key={i} className="p-3 bg-slate-800 rounded-md border border-slate-700">
-                                    <p className="text-gray-300 font-semibold italic">"{item.clause}"</p>
-                                    <p className="text-gray-400 mt-2 text-sm">{item.explanation}</p>
-                                    <p className="text-xs text-amber-400/80 mt-2">Source: {item.source}</p>
+                {(activeTab === 'details' || renderAllForPdf) && tabConfig[3].hasContent && (
+                    <section id="panel-details" role="tabpanel" aria-labelledby="tab-details" className={renderAllForPdf ? 'mb-8' : ''}>
+                        <div className="space-y-8">
+                             {response.legalJargon?.length > 0 && (
+                                <div>
+                                    <h4 className="text-xl font-bold text-gray-200 mb-3">Legal Jargon Explained</h4>
+                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 not-prose">
+                                        {response.legalJargon.map((item, i) => (
+                                            <div key={i} className="p-3 bg-slate-800 rounded-md">
+                                                <p className="font-semibold text-amber-300" dangerouslySetInnerHTML={{ __html: linkifyLegislation(item.term, jurisdiction) }} />
+                                                <p className="text-sm text-gray-400 mt-1" dangerouslySetInnerHTML={{ __html: linkifyLegislation(item.explanation, jurisdiction) }} />
+                                            </div>
+                                        ))}
+                                    </div>
                                 </div>
-                            ))}
-                        </div>
-                    </section>
-                )}
-                
-                {/* Section: Next Steps */}
-                <section>
-                    <h4 className="text-lg font-bold text-gray-200 mb-3 flex items-center gap-2">
-                       <LightbulbIcon className="w-5 h-5 text-amber-400" />
-                       Suggested Next Steps
-                    </h4>
-                    <div
-                        className="text-gray-300 leading-relaxed prose prose-invert prose-p:my-2 prose-ul:my-2 prose-strong:text-amber-400 max-w-none"
-                        dangerouslySetInnerHTML={{ __html: formatMarkdown(response.suggestedNextSteps) }}
-                    />
-                </section>
-                
-                 {/* Section: Action Items */}
-                {response.actionItems?.length > 0 && (
-                    <section>
-                        <h4 className="text-lg font-bold text-gray-200 mb-3">Action Items & Deadlines</h4>
-                        <ul className="list-disc pl-5 space-y-2 text-gray-300">
-                            {response.actionItems.map((item, i) => (
-                               <li key={i}>
-                                   {item.item}
-                                   {item.deadline && <span className="ml-2 text-sm font-semibold text-amber-400">(Deadline: {item.deadline})</span>}
-                                   <span className="ml-2 text-xs text-gray-500">(Source: {item.source})</span>
-                               </li>
-                            ))}
-                        </ul>
-                    </section>
-                )}
-
-                {/* Section: Legal Jargon */}
-                {response.legalJargon?.length > 0 && (
-                    <section>
-                        <h4 className="text-lg font-bold text-gray-200 mb-3">Legal Jargon Explained</h4>
-                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            {response.legalJargon.map((item, i) => (
-                                <div key={i} className="p-3 bg-slate-800 rounded-md">
-                                    <p className="font-semibold text-amber-300">{item.term}</p>
-                                    <p className="text-sm text-gray-400 mt-1">{item.explanation}</p>
+                            )}
+                             {response.documentTypes?.length > 0 && (
+                                <div>
+                                    <h4 className="text-xl font-bold text-gray-200 mb-3">Analyzed Documents</h4>
+                                    <div className="flex flex-wrap gap-2 not-prose">
+                                         {response.documentTypes.map((item, i) => (
+                                            <div key={i} className="flex items-center gap-2 bg-slate-800 text-sm text-gray-300 px-3 py-1 rounded-full">
+                                               <FileTextIcon className="w-4 h-4 text-amber-400" />
+                                               <span>{item.source}: <span className="font-semibold">{item.type}</span></span>
+                                            </div>
+                                        ))}
+                                    </div>
                                 </div>
-                            ))}
-                        </div>
-                    </section>
-                )}
-
-                {/* Section: Document Types */}
-                {response.documentTypes?.length > 0 && (
-                    <section>
-                        <h4 className="text-lg font-bold text-gray-200 mb-3">Analyzed Documents</h4>
-                        <div className="flex flex-wrap gap-2">
-                             {response.documentTypes.map((item, i) => (
-                                <div key={i} className="flex items-center gap-2 bg-slate-800 text-sm text-gray-300 px-3 py-1 rounded-full">
-                                   <FileTextIcon className="w-4 h-4 text-amber-400" />
-                                   <span>{item.source}: <span className="font-semibold">{item.type}</span></span>
-                                </div>
-                            ))}
+                            )}
                         </div>
                     </section>
                 )}
                
-                {/* Disclaimer & Feedback */}
-                <div className="pt-6 border-t border-slate-700/50 space-y-4">
+                <div className={renderAllForPdf ? '' : 'pt-6 border-t border-slate-700/50 mt-8'}>
                     <p className="text-xs text-gray-500 italic">{response.disclaimer}</p>
                     <div className="no-pdf">
                         <Feedback />

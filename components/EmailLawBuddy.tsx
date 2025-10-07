@@ -1,42 +1,39 @@
-import React, { useEffect } from 'react';
-import { useEmailBuddy } from '../hooks/useEmailBuddy';
-import EmailAnalysisDisplay from './email-buddy/EmailAnalysisDisplay';
-import DraftingStation from './email-buddy/DraftingStation';
-import JargonHelper from './email-buddy/JargonHelper';
+import React, { useEffect, useState } from 'react';
+import { useEmailBuddyState, useEmailBuddyActions, EmailBuddyResponse } from '../hooks/useEmailBuddy';
 import AlertTriangleIcon from './icons/AlertTriangleIcon';
 import XIcon from './icons/XIcon';
 import RotateCwIcon from './icons/RotateCwIcon';
-import {
-    exampleReceivedEmail,
-    exampleAnalysis,
-    exampleKeyPoints,
-    exampleDrafts
-} from '../constants/exampleData';
+import { exampleData } from '../constants/exampleData';
 import { useModal } from '../hooks/useModal';
-import type { Analysis, ToneOption } from '../hooks/useEmailBuddy';
-
-// Re-exporting types for other files if they were imported from here
-export type { Analysis, ToneOption };
+import AnalysisPanel from './email-buddy/AnalysisPanel';
+import DraftDisplay from './email-buddy/DraftDisplay';
+import AlternativeDraftsPanel from './email-buddy/AlternativeDraftsPanel';
 
 const EmailLawBuddy: React.FC<{ isOpen: boolean }> = ({ isOpen }) => {
     const { 
-        receivedEmail, 
+        receivedEmail,
+        response, 
+        isLoading, 
+        error,
+    } = useEmailBuddyState();
+    
+    const {
         setReceivedEmail, 
-        analysis, 
-        isLoadingAnalysis, 
-        error, 
-        handleAnalyzeEmail, 
+        handleGenerateResponses, 
         reset,
         setError,
         showExample
-    } = useEmailBuddy();
+    } = useEmailBuddyActions();
+
     const { closeModal } = useModal();
+    const [isAnalysisPanelOpen, setIsAnalysisPanelOpen] = useState(false);
 
     useEffect(() => {
         if (!isOpen) {
             // Delay reset to allow for modal close animation
             setTimeout(() => {
                 reset();
+                setIsAnalysisPanelOpen(false);
             }, 300);
         }
     }, [isOpen, reset]);
@@ -46,18 +43,19 @@ const EmailLawBuddy: React.FC<{ isOpen: boolean }> = ({ isOpen }) => {
     };
 
     const handleShowExample = () => {
-        showExample({
-            email: exampleReceivedEmail,
-            analysis: exampleAnalysis,
-            keyPoints: exampleKeyPoints,
-            drafts: exampleDrafts,
-        });
+        showExample(exampleData);
+        setIsAnalysisPanelOpen(false);
     };
+    
+    const handleStartOver = () => {
+        reset();
+        setIsAnalysisPanelOpen(false);
+    }
 
-    return (
+    const renderInitialState = () => (
         <div className="space-y-6">
             <p className="text-gray-400 text-sm">
-                Paste a high-conflict email below. Our AI will analyze the tone, identify demands, and help you draft a professional, court-ready response using proven de-escalation techniques like BIFF or Grey Rock.
+                Paste a high-conflict email below. Our AI will analyze it and instantly generate professional, court-ready draft responses using proven de-escalation techniques.
             </p>
 
             <div className="text-center text-sm bg-slate-900 p-3 rounded-lg border border-slate-700">
@@ -83,12 +81,78 @@ const EmailLawBuddy: React.FC<{ isOpen: boolean }> = ({ isOpen }) => {
                     value={receivedEmail}
                     onChange={(e) => setReceivedEmail(e.target.value)}
                     placeholder="Paste the full email here..."
-                    className="w-full h-40 p-3 bg-slate-900 border border-slate-700 rounded-lg focus:ring-2 focus:ring-amber-400 focus:outline-none transition-shadow duration-200 disabled:opacity-50"
-                    disabled={isLoadingAnalysis}
+                    className="w-full h-40 p-3 bg-slate-900 border border-slate-700 rounded-lg focus:ring-2 focus:ring-amber-400 focus:outline-none transition-shadow duration-200"
                 />
             </div>
             
-            {error && (
+            <div className="flex justify-end pt-4 border-t border-slate-700">
+                 <button
+                    onClick={handleGenerateResponses}
+                    disabled={!receivedEmail.trim()}
+                    className="inline-flex items-center justify-center bg-amber-400 text-black font-bold py-2 px-6 rounded-full shadow-lg transition-all duration-200 ease-out motion-safe:hover:scale-105 motion-safe:active:scale-95 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 focus:ring-offset-slate-800 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                    Generate Responses
+                </button>
+            </div>
+        </div>
+    );
+
+    const renderLoadingState = () => (
+        <div role="status" className="flex flex-col items-center justify-center h-full min-h-[400px] text-center text-gray-400">
+            <svg className="animate-spin h-8 w-8 text-amber-400 mb-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+            <p className="font-semibold text-lg text-amber-400">Analyzing & Drafting Responses...</p>
+            <p className="text-sm">This may take a moment.</p>
+        </div>
+    );
+    
+    const renderResultsState = (response: EmailBuddyResponse) => (
+         <div className="animate-fade-in-up">
+            <div className="flex justify-between items-center mb-4">
+                <h3 className="text-lg font-bold text-gray-200">Generated Responses</h3>
+                <button
+                    onClick={handleStartOver}
+                    className="flex items-center gap-2 text-sm text-amber-400 hover:text-amber-300 font-semibold transition-colors"
+                >
+                    <RotateCwIcon className="w-4 h-4" />
+                    Start Over
+                </button>
+            </div>
+
+            <div className="flex flex-col lg:flex-row gap-4">
+                {/* Left Panel: Analysis */}
+                <AnalysisPanel 
+                    analysis={response.analysis}
+                    isOpen={isAnalysisPanelOpen}
+                    setIsOpen={setIsAnalysisPanelOpen}
+                />
+
+                {/* Main Content: Drafts */}
+                <div className="flex-grow grid grid-cols-1 xl:grid-cols-2 gap-4">
+                    {/* Center Panel: Primary Draft */}
+                    <div className="bg-slate-900 border border-amber-400/50 rounded-lg p-4 flex flex-col shadow-lg">
+                       <DraftDisplay
+                           title="Primary Recommendation: BIFF"
+                           draft={response.drafts.biff}
+                       />
+                    </div>
+
+                    {/* Right Panel: Alternative Drafts */}
+                    <div className="bg-slate-900 border border-slate-700 rounded-lg p-4 flex flex-col">
+                        <AlternativeDraftsPanel drafts={{
+                            "Grey Rock": response.drafts.greyRock,
+                            "Friendly Assertive": response.drafts.friendlyAssertive
+                        }}/>
+                    </div>
+                </div>
+            </div>
+         </div>
+    );
+
+    return (
+        <div className="min-h-[40vh]">
+            {isLoading && renderLoadingState()}
+            
+            {!isLoading && error && (
                  <div className="bg-red-900/20 border border-red-500/50 text-red-400 text-sm rounded-lg p-3 flex items-center gap-3 animate-fade-in-up-fast" role="alert">
                     <AlertTriangleIcon className="w-5 h-5 flex-shrink-0" />
                     <p className="flex-grow">{error}</p>
@@ -96,40 +160,8 @@ const EmailLawBuddy: React.FC<{ isOpen: boolean }> = ({ isOpen }) => {
                 </div>
             )}
 
-            {!analysis && (
-                <div className="flex justify-end pt-4 border-t border-slate-700">
-                     <button
-                        onClick={handleAnalyzeEmail}
-                        disabled={isLoadingAnalysis || !receivedEmail.trim()}
-                        className="inline-flex items-center justify-center bg-amber-400 text-black font-bold py-2 px-6 rounded-full shadow-lg transition-all duration-200 ease-out motion-safe:hover:scale-105 motion-safe:active:scale-95 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 focus:ring-offset-slate-800 disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                         {isLoadingAnalysis ? (
-                            <>
-                                <svg className="animate-spin -ml-1 mr-3 h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
-                                Analyzing...
-                            </>
-                        ) : 'Analyze Email'}
-                    </button>
-                </div>
-            )}
-            
-            {analysis && (
-                <div className="space-y-6 animate-fade-in-up pt-4 border-t border-slate-700">
-                    <div className="flex justify-between items-center">
-                        <h3 className="text-lg font-bold text-gray-200">Step 2: Draft Your Response</h3>
-                        <button
-                            onClick={reset}
-                            disabled={isLoadingAnalysis}
-                            className="flex items-center gap-2 text-sm text-amber-400 hover:text-amber-300 font-semibold transition-colors disabled:opacity-50"
-                        >
-                            <RotateCwIcon className="w-4 h-4" />
-                            Start Over
-                        </button>
-                    </div>
-                    <EmailAnalysisDisplay />
-                    <JargonHelper />
-                    <DraftingStation />
-                </div>
+            {!isLoading && !error && (
+                response ? renderResultsState(response) : renderInitialState()
             )}
         </div>
     );

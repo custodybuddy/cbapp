@@ -1,26 +1,10 @@
-import React, { createContext, useState, useCallback, ReactNode } from 'react';
-import { generateIncidentReport } from '../services/aiService';
-import { incidentReportSystemPrompt } from '../prompts';
+import React, { createContext, useState, useCallback, ReactNode, useMemo } from 'react';
+import { generateIncidentReport } from '../services/incidentReportService';
 import { getFriendlyErrorMessage } from '../utils/errorUtils';
+import { IncidentData, IncidentReport } from '../types/ai';
 
-// Types for the context
-export interface IncidentData {
-    dateTime: string;
-    location: string;
-    involvedParties: string;
-    narrative: string;
-    jurisdiction: string;
-}
-
-export interface IncidentReport {
-    professionalSummary: string;
-    observedImpact: string[];
-    legalInsights: Array<{
-        insight: string;
-        legislation: string;
-        sourceUrl: string;
-    }>;
-}
+// --- Types for the context ---
+export type { IncidentData, IncidentReport };
 
 const initialIncidentData: IncidentData = {
     dateTime: '',
@@ -30,22 +14,26 @@ const initialIncidentData: IncidentData = {
     jurisdiction: '',
 };
 
-// Define the shape of the context value
-interface IncidentReportContextValue {
+// --- State and Actions Types ---
+export interface IncidentReportState {
     incidentData: IncidentData;
     isLoading: boolean;
     error: string | null;
     reportResponse: IncidentReport | null;
+}
+
+export interface IncidentReportActions {
     setIncidentData: React.Dispatch<React.SetStateAction<IncidentData>>;
     setError: React.Dispatch<React.SetStateAction<string | null>>;
     handleGenerateReport: () => Promise<void>;
     reset: () => void;
 }
 
-// Create the context
-export const IncidentReportContext = createContext<IncidentReportContextValue | undefined>(undefined);
+// --- Context Definitions ---
+export const IncidentReportStateContext = createContext<IncidentReportState | undefined>(undefined);
+export const IncidentReportActionsContext = createContext<IncidentReportActions | undefined>(undefined);
 
-// Create the provider component
+// --- Provider Component ---
 export const IncidentReportProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
     const [incidentData, setIncidentData] = useState<IncidentData>(initialIncidentData);
     const [isLoading, setIsLoading] = useState(false);
@@ -57,13 +45,11 @@ export const IncidentReportProvider: React.FC<{ children: ReactNode }> = ({ chil
             setError('Please fill in at least the date/time, jurisdiction, and a narrative of the incident.');
             return;
         }
-
         setIsLoading(true);
         setError(null);
         setReportResponse(null);
-
         try {
-            const result = await generateIncidentReport(incidentData, incidentReportSystemPrompt);
+            const result = await generateIncidentReport(incidentData);
             setReportResponse(result);
         } catch (err: any) {
             setError(getFriendlyErrorMessage(err, 'incident report generation'));
@@ -79,20 +65,25 @@ export const IncidentReportProvider: React.FC<{ children: ReactNode }> = ({ chil
         setIsLoading(false);
     }, []);
 
-    const value = {
-        incidentData,
+    const actions = useMemo(() => ({
         setIncidentData,
-        isLoading,
-        error,
         setError,
-        reportResponse,
         handleGenerateReport,
         reset,
-    };
+    }), [handleGenerateReport, reset]);
+
+    const state = useMemo(() => ({
+        incidentData,
+        isLoading,
+        error,
+        reportResponse,
+    }), [incidentData, isLoading, error, reportResponse]);
 
     return (
-        <IncidentReportContext.Provider value={value}>
-            {children}
-        </IncidentReportContext.Provider>
+        <IncidentReportStateContext.Provider value={state}>
+            <IncidentReportActionsContext.Provider value={actions}>
+                {children}
+            </IncidentReportActionsContext.Provider>
+        </IncidentReportStateContext.Provider>
     );
 };

@@ -1,5 +1,5 @@
-import React, { useEffect } from 'react';
-import { useIncidentReporter } from '../../hooks/useIncidentReporter';
+import React, { useEffect, useCallback } from 'react';
+import { useIncidentReportState, useIncidentReportActions } from '../../hooks/useIncidentReporter';
 import ReportResult from './ReportResult';
 import AlertTriangleIcon from '../icons/AlertTriangleIcon';
 import XIcon from '../icons/XIcon';
@@ -8,14 +8,17 @@ import RotateCwIcon from '../icons/RotateCwIcon';
 const ReportAnIncident: React.FC<{ isOpen: boolean }> = ({ isOpen }) => {
     const {
         incidentData,
-        setIncidentData,
         isLoading,
         error,
         reportResponse,
+    } = useIncidentReportState();
+    
+    const {
+        setIncidentData,
         handleGenerateReport,
         reset,
         setError
-    } = useIncidentReporter();
+    } = useIncidentReportActions();
 
     useEffect(() => {
         if (!isOpen) {
@@ -23,13 +26,20 @@ const ReportAnIncident: React.FC<{ isOpen: boolean }> = ({ isOpen }) => {
         }
     }, [isOpen, reset]);
 
-    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    /**
+     * Memoized event handler for form inputs.
+     * useCallback ensures that this function is not recreated on every render,
+     * which prevents child input components from re-rendering unnecessarily.
+     * It depends only on `setIncidentData`, which is a stable function from the context provider.
+     */
+    const handleChange = useCallback((e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
         setIncidentData(prev => ({ ...prev, [e.target.name]: e.target.value }));
-    };
+    }, [setIncidentData]);
     
     const isGenerateButtonDisabled = isLoading || !incidentData.narrative.trim() || !incidentData.jurisdiction.trim() || !incidentData.dateTime;
 
     if (reportResponse) {
+        // ReportResult is memoized itself, so it's safe to render here.
         return <ReportResult />;
     }
 
@@ -38,11 +48,12 @@ const ReportAnIncident: React.FC<{ isOpen: boolean }> = ({ isOpen }) => {
             <p className="text-gray-400 text-sm">
                 Document a specific event with precision. Describe what happened in your own words, and our AI will transform it into a professional, objective report formatted for legal review.
             </p>
+            <p className="text-xs text-gray-400">Fields marked with an <span className="text-red-400" aria-hidden="true">*</span> are required.</p>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                    <label htmlFor="dateTime" className="block text-sm font-medium text-gray-300 mb-1">Date & Time of Incident</label>
-                    <input type="datetime-local" id="dateTime" name="dateTime" value={incidentData.dateTime} onChange={handleChange} className="w-full p-2 bg-slate-900 border border-slate-700 rounded-lg focus:ring-2 focus:ring-amber-400 focus:outline-none" disabled={isLoading} />
+                    <label htmlFor="dateTime" className="block text-sm font-medium text-gray-300 mb-1">Date & Time of Incident<span aria-hidden="true" className="text-red-400 ml-1">*</span></label>
+                    <input type="datetime-local" id="dateTime" name="dateTime" value={incidentData.dateTime} onChange={handleChange} className="w-full p-2 bg-slate-900 border border-slate-700 rounded-lg focus:ring-2 focus:ring-amber-400 focus:outline-none" disabled={isLoading} required />
                 </div>
                 <div>
                     <label htmlFor="location" className="block text-sm font-medium text-gray-300 mb-1">Location</label>
@@ -53,14 +64,14 @@ const ReportAnIncident: React.FC<{ isOpen: boolean }> = ({ isOpen }) => {
                     <input type="text" id="involvedParties" name="involvedParties" value={incidentData.involvedParties} onChange={handleChange} placeholder="e.g., Myself, [Co-parent], Child(ren)" className="w-full p-2 bg-slate-900 border border-slate-700 rounded-lg focus:ring-2 focus:ring-amber-400 focus:outline-none" disabled={isLoading} />
                 </div>
                 <div>
-                    <label htmlFor="jurisdiction" className="block text-sm font-medium text-gray-300 mb-1">Jurisdiction (Province/State)</label>
-                    <input type="text" id="jurisdiction" name="jurisdiction" value={incidentData.jurisdiction} onChange={handleChange} placeholder="e.g., Ontario, Canada" className="w-full p-2 bg-slate-900 border border-slate-700 rounded-lg focus:ring-2 focus:ring-amber-400 focus:outline-none" disabled={isLoading} />
+                    <label htmlFor="jurisdiction" className="block text-sm font-medium text-gray-300 mb-1">Jurisdiction (Province/State)<span aria-hidden="true" className="text-red-400 ml-1">*</span></label>
+                    <input type="text" id="jurisdiction" name="jurisdiction" value={incidentData.jurisdiction} onChange={handleChange} placeholder="e.g., Ontario, Canada" className="w-full p-2 bg-slate-900 border border-slate-700 rounded-lg focus:ring-2 focus:ring-amber-400 focus:outline-none" disabled={isLoading} required />
                 </div>
             </div>
 
             <div>
-                <label htmlFor="narrative" className="block text-sm font-medium text-gray-300 mb-1">Narrative of Incident</label>
-                <textarea id="narrative" name="narrative" value={incidentData.narrative} onChange={handleChange} placeholder="Describe what happened in detail. Include who was present, what was said, and what actions were taken." rows={6} className="w-full p-3 bg-slate-900 border border-slate-700 rounded-lg focus:ring-2 focus:ring-amber-400 focus:outline-none" disabled={isLoading}></textarea>
+                <label htmlFor="narrative" className="block text-sm font-medium text-gray-300 mb-1">Narrative of Incident<span aria-hidden="true" className="text-red-400 ml-1">*</span></label>
+                <textarea id="narrative" name="narrative" value={incidentData.narrative} onChange={handleChange} placeholder="Describe what happened in detail. Include who was present, what was said, and what actions were taken." rows={6} className="w-full p-3 bg-slate-900 border border-slate-700 rounded-lg focus:ring-2 focus:ring-amber-400 focus:outline-none" disabled={isLoading} required></textarea>
             </div>
 
             {error && (
@@ -94,4 +105,10 @@ const ReportAnIncident: React.FC<{ isOpen: boolean }> = ({ isOpen }) => {
     );
 };
 
-export default ReportAnIncident;
+/**
+ * Memoizing the component prevents it from re-rendering if its parent component
+ * (e.g., GlobalModals) re-renders for reasons unrelated to this component,
+ * such as another modal being opened. It will only re-render if its `isOpen` prop
+ * changes or if the context value from `useIncidentReportState` changes.
+ */
+export default React.memo(ReportAnIncident);

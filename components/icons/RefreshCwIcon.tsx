@@ -1,4 +1,3 @@
-
 import React from 'react';
 
 const RefreshCwIcon: React.FC<{ className?: string }> = ({ className }) => (

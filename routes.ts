@@ -4,6 +4,7 @@ import React, { lazy } from 'react';
 const HomePage = lazy(() => import('./pages/HomePage'));
 const AboutPage = lazy(() => import('./pages/AboutPage'));
 const FeaturesPage = lazy(() => import('./pages/FeaturesPage'));
+const HowItWorksPage = lazy(() => import('./pages/HowItWorksPage'));
 const TestimonialsPage = lazy(() => import('./pages/TestimonialsPage'));
 const ResourcesPage = lazy(() => import('./pages/ResourcesPage'));
 const DonatePage = lazy(() => import('./pages/DonatePage'));
@@ -37,6 +38,7 @@ export const routes: RouteConfig[] = [
     { path: '#/', label: 'Home', component: HomePage, inHeader: true, inFooter: false },
     { path: '#/about', label: 'About Us', component: AboutPage, inHeader: true, inFooter: true },
     { path: '#/features', label: 'Features', component: FeaturesPage, inHeader: true, inFooter: true },
+    { path: '#/how-it-works', label: 'How It Works', component: HowItWorksPage, inHeader: true, inFooter: true },
     { path: '#/template-library', label: 'Template Library', component: TemplateLibraryPage, inHeader: true, inFooter: false },
     { path: '#/resources', label: 'Resources', component: ResourcesPage, inHeader: true, inFooter: false },
     { path: '#/testimonials', label: 'Testimonials', component: TestimonialsPage, inHeader: true, inFooter: true },

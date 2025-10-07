@@ -1,11 +1,24 @@
 import { useContext } from 'react';
-import { IncidentReportContext } from '../contexts/IncidentReportContext';
-import type { IncidentData, IncidentReport } from '../contexts/IncidentReportContext';
+import {
+    IncidentReportStateContext,
+    IncidentReportActionsContext,
+    IncidentReportState,
+    IncidentReportActions
+} from '../contexts/IncidentReportContext';
+import type { IncidentData, IncidentReport } from '../types/ai';
 
-export const useIncidentReporter = () => {
-    const context = useContext(IncidentReportContext);
+export const useIncidentReportState = (): IncidentReportState => {
+    const context = useContext(IncidentReportStateContext);
     if (context === undefined) {
-        throw new Error('useIncidentReporter must be used within an IncidentReportProvider');
+        throw new Error('useIncidentReportState must be used within an IncidentReportProvider');
+    }
+    return context;
+};
+
+export const useIncidentReportActions = (): IncidentReportActions => {
+    const context = useContext(IncidentReportActionsContext);
+    if (context === undefined) {
+        throw new Error('useIncidentReportActions must be used within an IncidentReportProvider');
     }
     return context;
 };

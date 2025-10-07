@@ -1,4 +1,3 @@
-
 import React from 'react';
 
 const ZoomInIcon: React.FC<{ className?: string }> = ({ className }) => (

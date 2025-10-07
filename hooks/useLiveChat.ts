@@ -1,7 +1,7 @@
 // Implemented the `useLiveChat` custom hook to manage the Gemini Live API voice chat session.
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { LiveServerMessage, Modality, Blob, LiveSession } from '@google/genai';
-import { ai } from '../services/aiService';
+import { ai } from '../services/geminiClient';
 import { encode, decode, decodeAudioData } from '../utils/audioUtils';
 import { getFriendlyErrorMessage } from '../utils/errorUtils';
 

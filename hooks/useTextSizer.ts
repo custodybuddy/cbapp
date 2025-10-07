@@ -18,7 +18,9 @@ export const useTextSizer = () => {
     });
 
     useEffect(() => {
-        document.documentElement.style.fontSize = `${scale * 100}%`;
+        // Apply the scale to the root element to be inherited by all components
+        document.documentElement.style.setProperty('--font-scale-factor', scale.toString());
+        
         try {
             localStorage.setItem(FONT_SCALE_KEY, scale.toString());
         } catch (error) {
