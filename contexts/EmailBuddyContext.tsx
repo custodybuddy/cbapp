@@ -1,5 +1,5 @@
 import React, { createContext, useState, useCallback, ReactNode, useMemo } from 'react';
-import { analyzeAndDraftEmailResponses } from '../services/geminiService';
+import { analyzeAndDraftEmailResponses } from '../services/openaiService';
 import { emailAnalyzerAndDrafterSystemPrompt } from '../prompts';
 import { getFriendlyErrorMessage } from '../utils/errorUtils';
 import { EmailBuddyResponse, ToneOption } from '../types/ai';

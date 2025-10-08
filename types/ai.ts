@@ -59,9 +59,9 @@ export type IncidentCategory =
 export interface IncidentData {
     narrative: string;
     jurisdiction: string;
-    category: IncidentCategory;
     incidentDate: string;
-    peopleInvolved: string[];
+    otherPartiesInvolved: string[];
+    childrenPresent: string[];
     location: string;
 }
 

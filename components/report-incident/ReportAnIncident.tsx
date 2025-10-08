@@ -1,55 +1,137 @@
-import React, { useEffect } from 'react';
-// FIX: The `useIncidentReport...` hooks are exported from the hook file, not the context file.
+import React, { useState, useEffect, KeyboardEvent } from 'react';
 import { useIncidentReportState, useIncidentReportActions } from '../../hooks/useIncidentReporter';
-import { IncidentCategory } from '../../contexts/IncidentReportContext';
 import ReportResult from './ReportResult';
-import TagInput from './TagInput';
 import AlertTriangleIcon from '../icons/AlertTriangleIcon';
 import XIcon from '../icons/XIcon';
 import RotateCwIcon from '../icons/RotateCwIcon';
+import CornerDownLeftIcon from '../icons/CornerDownLeftIcon';
 
-const incidentCategories: IncidentCategory[] = [
-    'Communication Issue',
-    'Schedule Violation',
-    'Financial Dispute',
-    'Child Safety Concern',
-    'Parental Alienation',
-    'Legal/Court Matter',
-    'Other'
+const predefinedParties = [
+    'Ex-spouse/Co-parent',
+    'Their current partner',
+    'Grandparent',
+    'Other family member',
+    'Police/First Responder',
+    'Witness',
 ];
+
+const predefinedChildren = ['Child A', 'Child B', 'Child C'];
 
 const ReportAnIncident: React.FC<{ isOpen: boolean }> = ({ isOpen }) => {
     const { incidentData, isLoading, error, reportResponse } = useIncidentReportState();
-    // Fix: Add setError to actions to allow dismissing error messages.
     const { setIncidentData, handleGenerateReport, reset, setError } = useIncidentReportActions();
+    
+    // Local state for dynamic list management
+    const [customPartyInput, setCustomPartyInput] = useState('');
+    const [childInput, setChildInput] = useState('');
+    const [customParties, setCustomParties] = useState<string[]>([]);
+    const [children, setChildren] = useState<string[]>([]);
 
     // Reset state when the modal is closed
     useEffect(() => {
         if (!isOpen) {
-            // Delay reset to allow for closing animation
             setTimeout(() => {
                 reset();
+                setCustomParties([]);
+                setChildren([]);
             }, 300);
         }
     }, [isOpen, reset]);
 
-    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
         const { name, value } = e.target;
         setIncidentData(prev => ({ ...prev, [name]: value }));
-        if (error) {
-            setError(null);
+        if (error) setError(null);
+    };
+
+    const handleCheckboxToggle = (
+        listName: 'otherPartiesInvolved' | 'childrenPresent',
+        item: string,
+        isChecked: boolean
+    ) => {
+        setIncidentData(prev => {
+            const currentList = prev[listName];
+            const newList = isChecked
+                ? [...currentList, item]
+                : currentList.filter(i => i !== item);
+            return { ...prev, [listName]: newList };
+        });
+    };
+
+    const handleAddCustomParty = () => {
+        const newParty = customPartyInput.trim();
+        if (newParty && ![...predefinedParties, ...customParties].includes(newParty)) {
+            setCustomParties(prev => [...prev, newParty]);
+            handleCheckboxToggle('otherPartiesInvolved', newParty, true); // Auto-select new party
+            setCustomPartyInput('');
         }
     };
-
-    const handleTagsChange = (newTags: string[]) => {
-        setIncidentData(prev => ({ ...prev, peopleInvolved: newTags }));
+    
+    const handleAddChild = () => {
+        const newChild = childInput.trim();
+        if (newChild && ![...predefinedChildren, ...children].includes(newChild)) {
+            setChildren(prev => [...prev, newChild]);
+            handleCheckboxToggle('childrenPresent', newChild, true); // Auto-select new child
+            setChildInput('');
+        }
+    };
+    
+    const handleInputKeyDown = (e: KeyboardEvent<HTMLInputElement>, action: 'addParty' | 'addChild') => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            if (action === 'addParty') handleAddCustomParty();
+            if (action === 'addChild') handleAddChild();
+        }
+    };
+    
+    const handleRemoveCustomParty = (partyToRemove: string) => {
+        setCustomParties(prev => prev.filter(p => p !== partyToRemove));
+        handleCheckboxToggle('otherPartiesInvolved', partyToRemove, false);
     };
 
-    const isGenerateButtonDisabled = isLoading || !incidentData.narrative.trim() || !incidentData.jurisdiction.trim() || !incidentData.incidentDate;
+    const handleRemoveChild = (childToRemove: string) => {
+        setChildren(prev => prev.filter(c => c !== childToRemove));
+        handleCheckboxToggle('childrenPresent', childToRemove, false);
+    };
+
+
+    const isGenerateButtonDisabled = isLoading || !incidentData.narrative.trim() || !incidentData.jurisdiction.trim() || !incidentData.incidentDate || incidentData.otherPartiesInvolved.length === 0;
 
     if (reportResponse) {
         return <ReportResult />;
     }
+    
+    const renderCheckbox = (label: string, listName: 'otherPartiesInvolved' | 'childrenPresent', onRemove?: () => void) => {
+        const id = `${listName}-${label.replace(/\s+/g, '-')}`;
+        const isChecked = incidentData[listName].includes(label);
+        return (
+            <div key={id} className="flex items-center justify-between bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm transition-all duration-200 has-[:checked]:bg-amber-400/10 has-[:checked]:border-amber-400/50">
+                <label htmlFor={id} className="flex-grow cursor-pointer text-gray-300 has-[:checked]:text-amber-300">
+                    <input
+                        id={id}
+                        type="checkbox"
+                        checked={isChecked}
+                        onChange={e => handleCheckboxToggle(listName, label, e.target.checked)}
+                        className="mr-2 h-4 w-4 rounded border-gray-400 bg-slate-700 text-amber-400 focus:ring-amber-500 cursor-pointer"
+                        disabled={isLoading}
+                    />
+                    {label}
+                </label>
+                {onRemove && (
+                    <button
+                        type="button"
+                        onClick={onRemove}
+                        className="text-gray-500 hover:text-white transition-colors ml-2"
+                        aria-label={`Remove ${label}`}
+                        disabled={isLoading}
+                    >
+                        <XIcon className="w-4 h-4" />
+                    </button>
+                )}
+            </div>
+        );
+    };
+
 
     return (
         <div className="space-y-6">
@@ -58,7 +140,7 @@ const ReportAnIncident: React.FC<{ isOpen: boolean }> = ({ isOpen }) => {
             </p>
             
             <form onSubmit={(e) => { e.preventDefault(); handleGenerateReport(); }} noValidate className="space-y-4">
-                 <div>
+                <div>
                     <label htmlFor="narrative" className="block text-sm font-medium text-gray-300 mb-1">Incident Narrative<span aria-hidden="true" className="text-red-400 ml-1">*</span></label>
                     <textarea
                         id="narrative"
@@ -72,7 +154,7 @@ const ReportAnIncident: React.FC<{ isOpen: boolean }> = ({ isOpen }) => {
                         required
                     />
                 </div>
-                
+
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                         <label htmlFor="jurisdiction-incident" className="block text-sm font-medium text-gray-300 mb-1">Jurisdiction (Province/State)<span aria-hidden="true" className="text-red-400 ml-1">*</span></label>
@@ -99,48 +181,73 @@ const ReportAnIncident: React.FC<{ isOpen: boolean }> = ({ isOpen }) => {
                             className="w-full p-2 bg-slate-900 border border-slate-700 rounded-lg focus:ring-2 focus:ring-amber-400 focus:outline-none"
                             disabled={isLoading}
                             required
-                            max={new Date().toISOString().split("T")[0]} // Prevent future dates
+                            max={new Date().toISOString().split("T")[0]}
                         />
                     </div>
                 </div>
 
-                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                        <label htmlFor="category" className="block text-sm font-medium text-gray-300 mb-1">Category</label>
-                        <select
-                            id="category"
-                            name="category"
-                            value={incidentData.category}
-                            onChange={handleChange}
-                            className="w-full p-2 bg-slate-900 border border-slate-700 rounded-lg focus:ring-2 focus:ring-amber-400 focus:outline-none"
-                            disabled={isLoading}
-                        >
-                            {incidentCategories.map(cat => <option key={cat} value={cat}>{cat}</option>)}
-                        </select>
-                    </div>
-                    <div>
-                        <label htmlFor="location" className="block text-sm font-medium text-gray-300 mb-1">Location</label>
-                        <input
-                            type="text"
-                            id="location"
-                            name="location"
-                            value={incidentData.location}
-                            onChange={handleChange}
-                            placeholder="e.g., Exchange point, via email"
-                            className="w-full p-2 bg-slate-900 border border-slate-700 rounded-lg focus:ring-2 focus:ring-amber-400 focus:outline-none"
-                            disabled={isLoading}
-                        />
-                    </div>
-                 </div>
+                <div>
+                    <label htmlFor="location" className="block text-sm font-medium text-gray-300 mb-1">Location</label>
+                    <input
+                        type="text"
+                        id="location"
+                        name="location"
+                        value={incidentData.location}
+                        onChange={handleChange}
+                        placeholder="e.g., Exchange point, via email"
+                        className="w-full p-2 bg-slate-900 border border-slate-700 rounded-lg focus:ring-2 focus:ring-amber-400 focus:outline-none"
+                        disabled={isLoading}
+                    />
+                </div>
 
-                <TagInput
-                    tags={incidentData.peopleInvolved}
-                    setTags={handleTagsChange}
-                    label="People Involved"
-                    id="peopleInvolved"
-                    placeholder="Add name and press Enter..."
-                    disabled={isLoading}
-                />
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
+                    {/* Other Parties Involved */}
+                    <div className="space-y-3">
+                        <label className="block text-sm font-medium text-gray-300">Other Parties Involved<span className="text-red-400 ml-1">*</span></label>
+                        <div className="space-y-2 max-h-48 overflow-y-auto pr-2">
+                            {predefinedParties.map(party => renderCheckbox(party, 'otherPartiesInvolved'))}
+                            {customParties.map(party => renderCheckbox(party, 'otherPartiesInvolved', () => handleRemoveCustomParty(party)))}
+                        </div>
+                        <div className="flex gap-2">
+                            <input
+                                type="text"
+                                value={customPartyInput}
+                                onChange={e => setCustomPartyInput(e.target.value)}
+                                onKeyDown={e => handleInputKeyDown(e, 'addParty')}
+                                placeholder="Add another party..."
+                                className="flex-grow w-full p-2 bg-slate-900 border border-slate-700 rounded-lg focus:ring-2 focus:ring-amber-400 focus:outline-none text-sm"
+                                disabled={isLoading}
+                            />
+                            <button type="button" onClick={handleAddCustomParty} disabled={isLoading} className="flex-shrink-0 bg-amber-400 text-black p-2 rounded-lg hover:bg-amber-300 disabled:opacity-50">
+                                <CornerDownLeftIcon className="w-5 h-5" />
+                            </button>
+                        </div>
+                    </div>
+
+                    {/* Children Present/Affected */}
+                    <div className="space-y-3">
+                        <label className="block text-sm font-medium text-gray-300">Children Present/Affected</label>
+                        <div className="space-y-2 max-h-48 overflow-y-auto pr-2">
+                            {predefinedChildren.map(child => renderCheckbox(child, 'childrenPresent'))}
+                            {children.map(child => renderCheckbox(child, 'childrenPresent', () => handleRemoveChild(child)))}
+                        </div>
+                         <div className="flex gap-2">
+                            <input
+                                type="text"
+                                value={childInput}
+                                onChange={e => setChildInput(e.target.value)}
+                                onKeyDown={e => handleInputKeyDown(e, 'addChild')}
+                                placeholder="Add another child..."
+                                className="flex-grow w-full p-2 bg-slate-900 border border-slate-700 rounded-lg focus:ring-2 focus:ring-amber-400 focus:outline-none text-sm"
+                                disabled={isLoading}
+                            />
+                            <button type="button" onClick={handleAddChild} disabled={isLoading} className="flex-shrink-0 bg-amber-400 text-black p-2 rounded-lg hover:bg-amber-300 disabled:opacity-50">
+                                <CornerDownLeftIcon className="w-5 h-5" />
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
 
                 {error && (
                     <div className="bg-red-900/20 border border-red-500/50 text-red-400 text-sm rounded-lg p-3 flex items-center gap-3 animate-fade-in-up-fast" role="alert">

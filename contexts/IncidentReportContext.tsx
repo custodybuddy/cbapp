@@ -1,5 +1,5 @@
 import React, { createContext, useState, useCallback, ReactNode, useMemo } from 'react';
-import { generateIncidentReport } from '../services/geminiService';
+import { generateIncidentReport } from '../services/openaiService';
 import { getFriendlyErrorMessage } from '../utils/errorUtils';
 import { IncidentReport, IncidentData, IncidentCategory } from '../types/ai';
 
@@ -24,9 +24,9 @@ export interface IncidentReportActions {
 export const initialIncidentData: IncidentData = {
     narrative: '',
     jurisdiction: '',
-    category: 'Communication Issue',
     incidentDate: '',
-    peopleInvolved: [],
+    otherPartiesInvolved: [],
+    childrenPresent: [],
     location: '',
 };
 
@@ -61,6 +61,10 @@ export const IncidentReportProvider: React.FC<{ children: ReactNode }> = ({ chil
         }
          if (!incidentData.incidentDate) {
             setError('Please select the date of the incident.');
+            return;
+        }
+        if (incidentData.otherPartiesInvolved.length === 0) {
+            setError('Please select or add at least one other party involved.');
             return;
         }
 
