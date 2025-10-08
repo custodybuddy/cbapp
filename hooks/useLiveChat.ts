@@ -1,9 +1,13 @@
-// Implemented the `useLiveChat` custom hook to manage the Gemini Live API voice chat session.
 import { useState, useRef, useCallback, useEffect } from 'react';
-import { LiveServerMessage, Modality, Blob, LiveSession } from '@google/genai';
-import { ai } from '../services/geminiClient';
+// FIX: The `LiveSession` type is not an exported member of the '@google/genai' package.
+import { LiveServerMessage, Modality, Blob } from '@google/genai';
+import { ai } from '../services/geminiService';
 import { encode, decode, decodeAudioData } from '../utils/audioUtils';
 import { getFriendlyErrorMessage } from '../utils/errorUtils';
+
+// FIX: Define `LiveSession` via type inference from the `ai.live.connect` method, as it is not exported.
+// This maintains strong typing for the session object.
+type LiveSession = Awaited<ReturnType<typeof ai.live.connect>>;
 
 // Define the shape of a single transcript entry
 export interface TranscriptEntry {
@@ -247,16 +251,25 @@ export const useLiveChat = (isOpen: boolean, systemInstruction: string): LiveCha
     }, [isRecording, startRecording, stopRecordingCleanup]);
 
     useEffect(() => {
+        // This effect should not auto-start recording when the modal merely exists in the DOM but is closed.
+        // It should only act when the `isOpen` prop becomes true.
         if (isOpen) {
-            startRecording();
+            // No auto-start, let the user initiate with the button.
         } else {
-            stopRecordingCleanup();
+            // This ensures cleanup happens if the modal is closed while a session is active.
+            if(isSessionActive) {
+                stopRecordingCleanup();
+            }
         }
         
+        // The returned cleanup function from useEffect will run when the component unmounts
+        // or before the effect runs again. This is a safety net.
         return () => {
-             stopRecordingCleanup();
+             if(isSessionActive) {
+                stopRecordingCleanup();
+            }
         };
-    }, [isOpen, systemInstruction, startRecording, stopRecordingCleanup]);
+    }, [isOpen, isSessionActive, stopRecordingCleanup]);
 
     return {
         isRecording,

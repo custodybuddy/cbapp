@@ -1,5 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import { useEmailBuddyState, useEmailBuddyActions, EmailBuddyResponse } from '../hooks/useEmailBuddy';
+// Fix: Import EmailBuddyResponse type from its source file instead of the hook file.
+import { useEmailBuddyState, useEmailBuddyActions } from '../hooks/useEmailBuddy';
+import type { EmailBuddyResponse } from '../types/ai';
 import AlertTriangleIcon from './icons/AlertTriangleIcon';
 import XIcon from './icons/XIcon';
 import RotateCwIcon from './icons/RotateCwIcon';

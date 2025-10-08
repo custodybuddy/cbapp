@@ -1,5 +1,5 @@
 import React, { createContext, useState, useCallback, ReactNode, useMemo } from 'react';
-import { analyzeCaseDocuments, prepareContentParts } from '../services/caseAnalysisService';
+import { analyzeCaseDocuments, prepareContentParts } from '../services/geminiService';
 import { caseAnalysisSystemPrompt } from '../prompts';
 import { getFriendlyErrorMessage } from '../utils/errorUtils';
 import { CaseAnalysisReport } from '../types/ai';

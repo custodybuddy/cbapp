@@ -64,7 +64,7 @@ const DraftDisplay: React.FC<DraftDisplayProps> = ({ title, draft }) => {
                 <h4 className="text-md font-bold text-amber-400">{title}</h4>
                 <div className="flex items-center gap-1">
                     <button onClick={handleEditToggle} className="flex items-center gap-1.5 bg-slate-700 hover:bg-slate-600 text-white font-semibold py-1 px-2 rounded-md transition-all text-xs">
-                        <PencilIcon />
+                        <PencilIcon className="w-3 h-3" />
                         <span>{isEditing ? 'Save' : 'Edit'}</span>
                     </button>
                     <button onClick={handleCopy} className="flex items-center gap-1.5 bg-slate-700 hover:bg-slate-600 text-white font-semibold py-1 px-2 rounded-md transition-all text-xs">

@@ -5,8 +5,6 @@ import {
     EmailBuddyState,
     EmailBuddyActions,
 } from '../contexts/EmailBuddyContext';
-import type { EmailBuddyResponse } from '../types/ai';
-import type { ToneOption } from '../contexts/EmailBuddyContext';
 
 // Hook for consuming state
 export const useEmailBuddyState = (): EmailBuddyState => {
@@ -25,6 +23,3 @@ export const useEmailBuddyActions = (): EmailBuddyActions => {
     }
     return context;
 };
-
-// Re-export types for convenience in components
-export type { EmailBuddyResponse, ToneOption };

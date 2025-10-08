@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { explainJargon } from '../../services/emailBuddyService';
+import { explainJargon } from '../../services/geminiService';
 import { getFriendlyErrorMessage } from '../../utils/errorUtils';
 import HelpCircleIcon from '../icons/HelpCircleIcon';
 import SpinnerIcon from '../icons/SpinnerIcon';

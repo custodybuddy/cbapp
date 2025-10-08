@@ -5,7 +5,6 @@ import {
     CaseAnalysisState,
     CaseAnalysisActions,
 } from '../contexts/CaseAnalysisContext';
-import type { CaseAnalysisReport } from '../types/ai';
 
 // Hook for consuming state
 export const useCaseAnalysisState = (): CaseAnalysisState => {
@@ -24,6 +23,3 @@ export const useCaseAnalysisActions = (): CaseAnalysisActions => {
     }
     return context;
 };
-
-// Re-export type for convenience
-export type { CaseAnalysisReport };

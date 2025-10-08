@@ -106,3 +106,20 @@ export const linkifyLegislation = (text: string, jurisdiction: string): string =
         return `<a href="${url}" target="_blank" rel="noopener noreferrer" class="text-amber-300 hover:text-amber-200 hover:underline font-semibold not-prose">${match}${externalLinkIconSvg}</a>`;
     });
 };
+
+/**
+ * Extracts a clean, readable domain name from a URL string.
+ * @param url The full URL string.
+ * @returns The cleaned domain name (e.g., "example.com").
+ */
+export const getDomainFromUrl = (url: string): string => {
+    try {
+        const urlObject = new URL(url);
+        // Remove 'www.' if it exists
+        return urlObject.hostname.replace(/^www\./, '');
+    } catch (error) {
+        // If the URL is malformed, return the original string as a fallback.
+        console.warn(`Could not parse URL: ${url}`);
+        return url;
+    }
+};

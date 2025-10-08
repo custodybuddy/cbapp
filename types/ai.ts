@@ -1,95 +1,78 @@
-import { z } from 'zod';
+export type Persona = 'Strategic Advisor' | 'Strict but Fair' | 'Empathetic Listener';
 
-// --- Type for Incident Report Feature ---
-export interface IncidentData {
-    dateTime: string;
-    location: string;
-    involvedParties: string;
-    narrative: string;
-    jurisdiction: string;
+export type ToneOption =
+  | "BIFF"
+  | "Grey Rock"
+  | "Friendly Assertive"
+  | "Professional (for Lawyers)"
+  | "Passive (not recommended)"
+  | "Passive-Aggressive (not recommended)"
+  | "Aggressive (not recommended)";
+
+export interface JargonItem {
+  term: string;
+  context: string;
 }
 
-// --- Zod Schemas for Runtime Validation ---
+export interface EmailAnalysis {
+    tone: string;
+    summary: string;
+    key_demands: string[];
+    legal_jargon: JargonItem[];
+}
+  
+export interface EmailDrafts {
+    biff: string;
+    greyRock: string;
+    friendlyAssertive: string;
+}
+  
+export interface EmailBuddyResponse {
+    analysis: EmailAnalysis;
+    drafts: EmailDrafts;
+}
 
-export const CaseAnalysisReportSchema = z.object({
-    documentTypes: z.array(z.object({
-        type: z.string(),
-        source: z.string(),
-    })),
-    summary: z.string(),
-    keyClauses: z.array(z.object({
-        clause: z.string(),
-        explanation: z.string(),
-        source: z.string(),
-    })),
-    discrepancies: z.array(z.object({
-        description: z.string(),
-        sources: z.array(z.string()),
-    })),
-    legalJargon: z.array(z.object({
-        term: z.string(),
-        explanation: z.string(),
-    })).optional(),
-    actionItems: z.array(z.object({
-        item: z.string(),
-        deadline: z.string().optional(),
-        source: z.string(),
-    })).optional(),
-    suggestedNextSteps: z.string(),
-    strategicCommunication: z.object({
-        recommendation: z.string(),
-        draftEmail: z.string(),
-    }).optional(),
-    disclaimer: z.string(),
-});
-export type CaseAnalysisReport = z.infer<typeof CaseAnalysisReportSchema>;
+export interface CaseAnalysisReport {
+    documentTypes: { type: string; source: string; }[];
+    summary: string;
+    keyClauses: { clause: string; explanation: string; source: string; }[];
+    discrepancies: { description: string; sources: string[]; }[];
+    legalJargon: { term: string; explanation: string; }[];
+    actionItems: { item: string; deadline?: string; source: string; }[];
+    suggestedNextSteps: string;
+    strategicCommunication?: {
+        recommendation: string;
+        draftEmail: string;
+    };
+    disclaimer: string;
+}
 
-const EmailAnalysisSchema = z.object({
-    tone: z.string(),
-    summary: z.string(),
-    key_demands: z.array(z.string()),
-    legal_jargon: z.array(z.object({
-        term: z.string(),
-        context: z.string(),
-    })).optional(),
-});
-export type EmailAnalysis = z.infer<typeof EmailAnalysisSchema>;
+export type IncidentCategory = 
+    | 'Communication Issue'
+    | 'Schedule Violation'
+    | 'Financial Dispute'
+    | 'Child Safety Concern'
+    | 'Parental Alienation'
+    | 'Legal/Court Matter'
+    | 'Other';
 
-export const EmailBuddyResponseSchema = z.object({
-    analysis: EmailAnalysisSchema,
-    drafts: z.object({
-        biff: z.string(),
-        greyRock: z.string(),
-        friendlyAssertive: z.string(),
-    })
-});
-export type EmailBuddyResponse = z.infer<typeof EmailBuddyResponseSchema>;
+export interface IncidentData {
+    narrative: string;
+    jurisdiction: string;
+    category: IncidentCategory;
+    incidentDate: string;
+    peopleInvolved: string[];
+    location: string;
+}
 
-
-export const IncidentReportSchema = z.object({
-    title: z.string().describe("Brief descriptive title of the incident"),
-    category: z.enum([
-        "Child Safety/Welfare Concern", 
-        "Communication Issues", 
-        "Schedule Violations", 
-        "Breach of Court Order", 
-        "Parental Alienation", 
-        "Inappropriate Behavior", 
-        "Financial Disputes", 
-        "Other"
-    ]).describe("The category of the incident"),
-    severity: z.enum(["Low", "Medium", "High"]).describe("The severity of the incident"),
-    severityJustification: z.string().describe("Justification for the severity rating"),
-    professionalSummary: z.string().describe("Objective summary of the incident"),
-    observedImpact: z.string().describe("Analysis of the impact on children"),
-    legalInsights: z.string().describe("Analysis of relevant family law principles"),
-    sources: z.array(z.string()).describe("List of potential legal or informational sources"),
-    aiNotes: z.string().describe("AI notes on documentation and evidence"),
-});
-export type IncidentReport = z.infer<typeof IncidentReportSchema>;
-
-export const JargonExplanationSchema = z.object({
-    explanation: z.string(),
-    suggested_question: z.string(),
-});
-export type JargonExplanation = z.infer<typeof JargonExplanationSchema>;
+export interface IncidentReport {
+    title: string;
+    category: IncidentCategory;
+    severity: 'Low' | 'Medium' | 'High';
+    severityJustification: string;
+    professionalSummary: string;
+    observedImpact: string;
+    legalInsights: string;
+    sources: string[];
+    aiNotes: string;
+}

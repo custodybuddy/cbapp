@@ -5,7 +5,6 @@ import {
     IncidentReportState,
     IncidentReportActions
 } from '../contexts/IncidentReportContext';
-import type { IncidentData, IncidentReport } from '../types/ai';
 
 export const useIncidentReportState = (): IncidentReportState => {
     const context = useContext(IncidentReportStateContext);
@@ -22,5 +21,3 @@ export const useIncidentReportActions = (): IncidentReportActions => {
     }
     return context;
 };
-
-export type { IncidentData, IncidentReport };

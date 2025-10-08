@@ -1,4 +1,3 @@
-// Fix: Added import for React to use React.RefObject type.
 import React, { useEffect, useRef } from 'react';
 
 /**

@@ -1,16 +1,11 @@
 import React, { createContext, useState, useCallback, ReactNode, useMemo } from 'react';
-import { analyzeAndDraftEmailResponses } from '../services/emailBuddyService';
+import { analyzeAndDraftEmailResponses } from '../services/geminiService';
 import { emailAnalyzerAndDrafterSystemPrompt } from '../prompts';
 import { getFriendlyErrorMessage } from '../utils/errorUtils';
-import { EmailBuddyResponse } from '../types/ai';
+import { EmailBuddyResponse, ToneOption } from '../types/ai';
 
-// Types from EmailLawBuddy and DraftingStation
-export type { EmailBuddyResponse };
-
-export type ToneOption =
-    | 'BIFF'
-    | 'Grey Rock'
-    | 'Friendly Assertive';
+// Re-export type for convenience
+export type { EmailBuddyResponse, ToneOption };
 
 // State and Context Shape
 export interface EmailBuddyState {
@@ -59,7 +54,7 @@ export const EmailBuddyProvider: React.FC<{ children: ReactNode }> = ({ children
         }
         setState(s => ({ ...s, isLoading: true, error: null, response: null }));
         try {
-            const result = await analyzeAndDraftEmailResponses(state.receivedEmail, emailAnalyzerAndDrafterSystemPrompt);
+            const result = await analyzeAndDraftEmailResponses(state.receivedEmail);
             setState(s => ({ ...s, response: result, isLoading: false }));
         } catch (err: any) {
             setState(s => ({ ...s, error: getFriendlyErrorMessage(err, 'email analysis and drafting'), isLoading: false }));

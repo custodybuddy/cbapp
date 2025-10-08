@@ -1,18 +1,9 @@
 import React, { createContext, useState, useCallback, ReactNode, useMemo } from 'react';
-import { generateIncidentReport } from '../services/incidentReportService';
+import { generateIncidentReport } from '../services/geminiService';
 import { getFriendlyErrorMessage } from '../utils/errorUtils';
-import { IncidentData, IncidentReport } from '../types/ai';
+import { IncidentReport, IncidentData, IncidentCategory } from '../types/ai';
 
-// --- Types for the context ---
-export type { IncidentData, IncidentReport };
-
-const initialIncidentData: IncidentData = {
-    dateTime: '',
-    location: '',
-    involvedParties: '',
-    narrative: '',
-    jurisdiction: '',
-};
+export type { IncidentReport, IncidentData, IncidentCategory };
 
 // --- State and Actions Types ---
 export interface IncidentReportState {
@@ -29,6 +20,24 @@ export interface IncidentReportActions {
     reset: () => void;
 }
 
+// --- Initial State ---
+export const initialIncidentData: IncidentData = {
+    narrative: '',
+    jurisdiction: '',
+    category: 'Communication Issue',
+    incidentDate: '',
+    peopleInvolved: [],
+    location: '',
+};
+
+const initialState: IncidentReportState = {
+    incidentData: initialIncidentData,
+    isLoading: false,
+    error: null,
+    reportResponse: null,
+};
+
+
 // --- Context Definitions ---
 export const IncidentReportStateContext = createContext<IncidentReportState | undefined>(undefined);
 export const IncidentReportActionsContext = createContext<IncidentReportActions | undefined>(undefined);
@@ -41,13 +50,23 @@ export const IncidentReportProvider: React.FC<{ children: ReactNode }> = ({ chil
     const [reportResponse, setReportResponse] = useState<IncidentReport | null>(null);
 
     const handleGenerateReport = useCallback(async () => {
-        if (!incidentData.narrative.trim() || !incidentData.jurisdiction.trim() || !incidentData.dateTime) {
-            setError('Please fill in at least the date/time, jurisdiction, and a narrative of the incident.');
+        setError(null);
+        if (!incidentData.narrative.trim()) {
+            setError('Please provide a narrative of the incident.');
             return;
         }
+        if (!incidentData.jurisdiction.trim()) {
+            setError('Please specify the jurisdiction (e.g., province or state).');
+            return;
+        }
+         if (!incidentData.incidentDate) {
+            setError('Please select the date of the incident.');
+            return;
+        }
+
         setIsLoading(true);
-        setError(null);
         setReportResponse(null);
+
         try {
             const result = await generateIncidentReport(incidentData);
             setReportResponse(result);
@@ -60,24 +79,24 @@ export const IncidentReportProvider: React.FC<{ children: ReactNode }> = ({ chil
 
     const reset = useCallback(() => {
         setIncidentData(initialIncidentData);
+        setIsLoading(false);
         setError(null);
         setReportResponse(null);
-        setIsLoading(false);
     }, []);
-
-    const actions = useMemo(() => ({
-        setIncidentData,
-        setError,
-        handleGenerateReport,
-        reset,
-    }), [handleGenerateReport, reset]);
-
+    
     const state = useMemo(() => ({
         incidentData,
         isLoading,
         error,
         reportResponse,
     }), [incidentData, isLoading, error, reportResponse]);
+
+    const actions = useMemo(() => ({
+        setIncidentData,
+        setError,
+        handleGenerateReport,
+        reset,
+    }), [setIncidentData, setError, handleGenerateReport, reset]);
 
     return (
         <IncidentReportStateContext.Provider value={state}>

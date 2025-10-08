@@ -196,7 +196,7 @@ const AnalysisResult: React.FC = () => {
                                         <div className="absolute top-2 right-2 flex items-center gap-1 z-10 no-pdf">
                                             <button onClick={() => setIsStrategicEmailEditing(!isStrategicEmailEditing)} className="flex items-center gap-1.5 bg-slate-700 hover:bg-slate-600 text-white font-semibold py-1 px-2 rounded-md transition-all text-xs">
                                                 <PencilIcon className="w-3 h-3" />
-                                                <span>{isStrategicEmailEditing ? 'Done' : 'Edit'}</span>
+                                                <span>{isStrategicEmailEditing ? 'Save' : 'Edit'}</span>
                                             </button>
                                             <button onClick={handleCopyStrategicEmail} className="flex items-center gap-1.5 bg-slate-700 hover:bg-slate-600 text-white font-semibold py-1 px-2 rounded-md transition-all text-xs" aria-label="Copy draft email">
                                                 {isCopied ? <ClipboardCheckIcon /> : <ClipboardIcon />}

@@ -1,4 +1,7 @@
-// Fix: Add audio utility functions required for the new Gemini Live API implementation.
+/**
+ * This file contains utility functions for encoding and decoding audio data,
+ * specifically for use with the Gemini Live API.
+ */
 
 /**
  * Encodes a byte array into a Base64 string.
